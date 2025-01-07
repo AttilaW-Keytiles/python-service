@@ -1,0 +1,15 @@
+# we do not commit Virtual Environment
+.venv/
+
+# we do not commit local VSCode or other IDE stuff
+.vscode/
+.idea/
+
+# do not commit generated info
+src/*.egg-info/
+# also no caches
+*__pycache__*
+
+# exclude things to be committed from local_workfolder
+local_workfolder/data/*
+local_workfolder/logs/*

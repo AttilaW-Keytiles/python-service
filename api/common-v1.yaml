@@ -1,0 +1,171 @@
+openapi: 3.0.1
+
+info:
+  version: '1.0'
+  title: Some common object definitions
+  description: "These object definitions are shared among multiple contracts"
+
+paths: {}
+
+components:
+
+  headers:
+    'x-trace-id':
+      schema:
+        type: string
+      description: >
+                  For tracing. Purpose is to correlate - even inter-service - calls belong to the same business transaction system-wide.
+                  All server side logs using (well, should...) this to correlate log events generated under the scope of this.  
+                    
+                  You can send this on request header - if you already have one - to upstream services to correlate API invocation into you bigger business transaction. If you do then server will use that.  
+                    
+                  If there is no inbound value then a new one will be generated and returned in response header.  
+                    
+                  RECOMMENDATION: It is a good idea to log out this value after you received the response in your Client - because if something went wrong you can give this to us during investigation!
+
+    'x-transaction-id':
+      schema:
+        type: string
+      description: >
+                  For tracing. You always get it back in response headers. This is the unique ID of the *this* concrete API invocation - generated on server side during the request handling. 
+                  All server side logs using (well, should...) this to correlate log events generated under the scope of this.  
+                    
+                  The difference btw this and 'x-trace-id' is that always a new 'x-transaction-id' is generated whenever you call the API endpoint however they might belong to the same 'x-trace-id'.  
+                    
+                  RECOMMENDATION: It is a good idea to log out this value after you received the response in your Client - because if something went wrong with this very particular
+                  invocation you can give this to us during investigation!
+
+  parameters:
+    traceIdHeader:
+      name: 'x-trace-id'
+      in: header
+      required: false
+      description: >
+                  For tracing. Purpose is to correlate - even inter-service - calls belong to the same business transaction system-wide.
+                  All server side logs using (well, should...) this to correlate log events generated under the scope of this.  
+                    
+                  You can send this on request header - if you already have one - to upstream services to correlate API invocation into you bigger business transaction. If you do then server will use that.  
+                    
+                  If there is no inbound value then a new one will be generated and returned in response header.  
+                    
+                  RECOMMENDATION: if you have a trace id at your hand always make sure you send this in!
+      schema:
+        type: string  
+
+  schemas:
+
+    # This enum defines global error codes which could appear basically in any API Endpoints
+    # note: no support in OpenApi for now how to document values so we just add the description as comments for now.
+    #       see: https://github.com/OAI/OpenAPI-Specification/issues/348 
+    CommonErrorCodes:
+      type: string
+      enum:
+      # The URL of the request does not make sense - this endpoing does not exist
+      - url_invalid
+      # A protected endpoint was invoked which requires a valid authentication to execute the operation on behalf - but the authentication information was simply missing from the request 
+      - authentication_missing
+      # A protected endpoint was invoked which requires a valid authentication to execute the operation on behalf. The auth information was found on the request but system - for some reason - has failed to validate the info 
+      - authentication_internalError
+      # A protected endpoint was invoked which requires a valid authentication to execute the operation on behalf. The auth info was found in the request but either the user does not exist, or the provided password was not matching (Basic), or GWT is invalid - anyhow, something was wrong with the given credentials
+      - authentication_invalid
+      # A protected endpoint was invoked which requires a valid authentication to execute the operation on behalf. Auth info was found on the request but the system does not support this type of authentication
+      - authentication_methodNotSupported
+      # One of the request parameters/arguments were sent in a format which is not the expected one. For example we were expected a Boolean value like "true" but we received maybe "abc" - which can not be converted into a boolean
+      - requestParameter_wrongFormat
+      # One of the mandatory request parameters/arguments was missing
+      - requestParameter_missing
+      # One of the request parameters/arguments is supposed to be either one of some predefined values (typically an Enum or similar), or something which requires a specific format for example and email address or similar - but something else has arrived which is therefore not supported / understood by the endpoint
+      - requestParameter_invalid
+      # One of the request parameters/arguments is not supported by this endpoint
+      - requestParameter_not_supported
+      # One of the request parameters/arguments is pointless to be used in this context - would be ignored and we want the user to know this
+      - requestParameter_pointless
+      # There are req params in the query which are contradicting with each other
+      - requestParameter_contradicting
+      # There are req params in the query which are in conflict with each other. There should be only one of them.
+      - requestParameter_conflict
+      # In REST style endpoints we use resource versioning to detect and avoid issues might be caused by race conditions. When this situation is detected the endpoint is raising this error so the caller knows he should start over the whole thing because someone else has modified the same resource just in parallel.
+      - resourceVersion_mismatch
+      # This might come if in the request client is using a field which is already deprecated
+      - field_deprecated
+      # In some situations server might realize we got contradicting data
+      - data_contradictingRequest
+      # Something went wrong during processing the request
+      - processing_failed_internally
+
+    ProblemPlaceEnum:
+      type: string
+      enum:
+      - queryParam
+      - urlParam
+      - url
+      - requestBody
+      - requestHeader
+      - remoteService
+      - cookie
+      - persistence
+      - calculated
+      description: 'This info piece is most useful for 400 - "Bad Request" problems but can be meaningful of course in other scenarios too. It marks the place which has the problem.'
+      nullable: true
+
+    # An entry like this describes a problem - typically we support list of problems
+    # A problem can be a Warning or an Error
+    Problem:
+      type: object
+      required:
+      - severity
+      - message
+      properties:
+        severity:
+          type: string
+          enum: [warning, error]
+          example: 'warning|error'
+        message:
+          type: string
+          description: 'The problem in human readable form'
+        place:
+          $ref: "#/components/schemas/ProblemPlaceEnum"
+        placeName:
+          type: string
+          nullable: true
+          description: 'If it makes sense it tells you which exact place was problematic. E.g. if a request parameter should be an Integer but you send in something wrong then "placeName" will tell you exactly which request parameter was wrong.'
+        errorCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommonErrorCodes"
+          default: []
+          nullable: true
+
+    BaseResponse:
+      type: object
+      required:
+      - requestReceivedAt
+      properties:
+        requestReceivedAt:
+          type: integer
+          format: int32
+          description: "The server time in UNIX timestamp in UTC (seconds since Epoch) when this response was received and processing was started"
+          example: 1543355710
+        processingTookMillis:
+          type: integer
+          format: int32
+          nullable: true
+          description: "Number of milliseconds the processing took on server side"
+        # we need to make this field public in the model to allow override!
+        problems:
+          type: array
+          items:
+            $ref: '#/components/schemas/Problem'
+          nullable: true
+          default: []
+          description: 'List of errors/warnings'
+
+
+    MessageResponse:
+      allOf:
+      - $ref: '#/components/schemas/BaseResponse'
+      - type: object
+        properties:
+          message:
+            type: string
+            description: "The human readable message"

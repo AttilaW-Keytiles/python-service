@@ -1,0 +1,15 @@
+# settings used by the FastAPI app
+fast_api:
+  http_port: 8080
+
+http_server:
+  port: "8080"
+
+persistence:
+  implementation: sqlite
+  params:
+    something: 'buuu'
+
+metrics:
+  is_enabled: true
+  port: 9008

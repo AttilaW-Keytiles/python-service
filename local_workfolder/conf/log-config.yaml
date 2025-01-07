@@ -1,0 +1,71 @@
+version: 1
+disable_existing_loggers: False
+
+formatters:
+  plain_text:
+    # we use our customized formatter - this handles the "extra" as well
+    (): src.observability.formatters.CustomisedPlainFormatter
+    format: '{asctime} - [{levelname}] [{name}] [{threadName}]: {message}   | labels="{extra}"'
+    style: '{'
+  json:
+    # we use our customized formatter - for possibilities see class docs!
+    (): src.observability.formatters.CustomisedJSONFormatter
+    attributesRemap:
+      # we enrich with logLevel, logger name and thread name
+      level: '!record_get("levelname")'
+      logger: '!record_get("name")'
+      thread: '!record_get("threadName")'
+    reorderAttributes: ['time', 'level', 'logger', 'message']
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: plain_text
+    stream: ext://sys.stdout
+
+  plain_file:
+    class: logging.FileHandler
+    level: DEBUG
+    formatter: plain_text
+    filename: local_workfolder/logs/service.log
+    mode: a
+
+  json_file:
+    class: logging.FileHandler
+    level: DEBUG
+    formatter: json
+    filename: local_workfolder/logs/service.log.json
+    mode: a
+
+
+# NOTE! Loggers are hierarchical! This means:
+# if the code requests get_logger('a.b.c') and here you configure only logger 'a' then its setup is inherited into 'a.b.c' - use it to your advantage setting up log levels!
+#
+loggers:
+
+  # Logger used by the main.py which bootstraps everything
+  main:
+    level: INFO
+    handlers: [console, plain_file, json_file]
+    propagate: no
+
+  # All Loggers created by the service code belong to "service" group - so this controls everyone basically
+  service:
+    level: DEBUG
+    handlers: [console, plain_file, json_file]
+    propagate: no
+
+  # but feel free to break it down more!
+  # To find all loggers you can setup here simply just search for "LoggerFactory.getLogger" or "LoggerFactory.get_logger" in the code!
+
+  # this is the underlying uvicorn framework logger behind fastAPI
+  uvicorn:
+    level: WARNING
+    handlers: [console, plain_file, json_file]
+    propagate: no
+
+# We configure everything else (not service code) to WARNING only
+root:
+    level: WARNING
+    handlers: [console, plain_file, json_file]

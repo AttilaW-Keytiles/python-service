@@ -1,0 +1,18 @@
+[project]
+name = "banking-service"
+version = "1.0.0"
+description = "Service handles Customers and Bank accounts CRUD and other operations."
+authors = [
+    {name="Attila Wind", email="attilaw@swf.technology"}
+]
+dependencies = [
+    "PyYAML",
+    "fastapi[standard]",
+    "fastapi-code-generator",
+    "structlog",
+    "json-log-formatter",
+
+    # for testing
+    "robotframework>=7.1",
+]
+requires-python = ">=3.11"

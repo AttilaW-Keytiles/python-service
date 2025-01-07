@@ -1,0 +1,389 @@
+openapi: 3.0.1
+
+info:
+  version: '1.0'
+  title: Banking API
+  description: >
+              This API is working with the following business objects:
+               * Customer
+               * Bank account
+              
+              It provides endpoints to manipulate the business objects (RESTful) and execute certain actions (RPC style).
+
+              # Versioning
+
+              API follows [Semantic versioning](https://semver.org/) - but no patch versions. You see more info in the README.md file of the folder!
+
+servers:
+- url: http://localhost:8080/api
+  description: Local dev server
+  # of course the below does not work... but normally we would add it
+- url: https://banking-service.test.ourdomain.com/api
+  description: Our TEST environment
+- url: https://banking-service.ourdomain.com/api
+  description: Our PROD environment
+
+tags:
+- name: Customer management REST API
+  description: Manage customer data
+- name: Bank Account management REST API
+  description: Manage bank accounts of customers
+- name: Bank Account operations
+  description: Actions you can do with bank accounts - RPC style
+
+paths:
+
+  '/v1/customers/rest':
+
+    get:
+      summary: Query multiple Customers in one-go.
+      description: >
+                  Using the supported query parameters basically acts like a "Search". You MUST use at least one of the "narrowing" query parameters (valiud search) as returning all resources is not supported!
+      tags:
+      - Customer management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - name: customerIds
+        in: query
+        schema:
+          type: string
+        description: Comma separated list of multiple Customer IDs to query. This limits the scope of all other query parameters to the listed ones. If a Customer ID you specify here does not exist then you do not get it back in the response.
+      responses:
+        '200':
+          description: You get back a list of Customer resources - mathcing your search criteria. You might get back empty result of course.
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+
+    post:
+      summary: Creates a new Customer
+      description: >
+                  When you send in the User resource it's up to you to assign an ID to the user client side or not - but consider the following:
+                   * If you do not (not sending 'id') then a new ID will be generated server side. BUT this way your operation is not idempotent - obviously.
+                   * If you do then the ID really should be in Timed UUID v4 format - in this case you can achieve idempotency but you take some complexity to client side obviously.
+      tags:
+      - Customer management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      requestBody:
+        description: 'The Customer resource to create.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+      responses:
+        '201':
+          description: >
+                        The Customer resouce is created - all changes are saved. No further action is needed.  
+                        Resource is not returned on the response (you just sent all data right? ;-)). 
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-customerid':
+              schema:
+                type: string
+              description: The ID of the newly created Customer resource. Mostly makes sense if ID was assigned server side. Of course if you generated the ID Client side then you get back the same here.
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '400':
+          description: "There are problems with the creation request. Further information is available in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given auth"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "This Customer can not be created as some constraints are violated. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+  '/v1/customers/rest/{customerId}':
+
+    get:
+      summary: To query a specific Customer
+      tags:
+      - Customer management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/customerId'
+      responses:
+        '200':
+          description: >
+                        Returns the Customer resouce.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Customer'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The requested Customer does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "This Customer can not be created as some constraints are violated. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+                
+    put:
+      summary: To modify a specific Customer
+      tags:
+      - Customer management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/customerId'
+      requestBody:
+        description: 'The Customer resource to update.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+      responses:
+        '200':
+          description: Customer was modified successfully.
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The Customer you want to modify does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'                
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "Update failed as some constraints are violated - e.g. server has a newer version already due to concurrent update. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+    delete:
+      summary: To delete a specific Customer
+      tags:
+      - Customer management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/customerId'
+      responses:
+        '200':
+          description: Customer was deleted.
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The Customer does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+
+components:
+
+  securitySchemes:
+    # username and password - for now as a start
+    basicAuth:
+      type: http
+      scheme: basic
+      description: "Basic HTTP authentication can be used - caller employee's username/password or system's technical user"
+
+  parameters:
+    customerId:
+      name: customerId
+      in: path
+      required: true
+      description: 'ID of the Customer to query/modify/delete'
+      schema:
+        type: string
+
+  schemas:
+
+    Customer:
+      description: Business object representing a Customer.
+      type: object
+      required:
+        - name
+      properties:
+        id:
+          type: string
+          description: >
+                      Unique ID of the customer - Timed UUID v4 style.  
+                        
+                      In returned (query) resources this is always present and never null. However in POST (create) operations it is up to you if you add this to the resource (Client side generated ID) or
+                      omit / send as null! See POST endpoint description for more details.
+        version:
+          type: integer
+          readOnly: true
+          description: This is the resource version starts from 1 and automatically incremented by every successful change server side. When you do an update (PUT) you need to send it back! The server will check if it is matching with the resource version he has. If not then that means someone else already did an update in the meantime therefore your request can not be accepted - otherwise you may overwrite the changes someone did.
+        name:
+          type: string
+          description: Mandatory. The name of the customer. Can not be empty.
+          nullable: false
+        email:
+          type: string
+          description: Optional. Stores the email address of the user. Ig given then this must follow email format.
+          example: john.smith@domain.something
