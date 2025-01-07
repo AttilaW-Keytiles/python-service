@@ -1,21 +1,23 @@
 import sys
 import os
 import argparse
-from src.observability.logging import LoggerFactory
+from src.observability.logging import LoggerFactory, Logger
 from src.observability.common import buildGlobalLabels
 from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
 from src.persistence.sqlite_customer_crud_dao import SqliteCustomerDAO
 from src.config.models import ServiceConfig
-from src.api.http.customer_handler_v1 import CustomerHandlerV1
+from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
 from fastapi import FastAPI
 
 
 
 ENVVAR_CFG_PATH = "BANKINGSERVICE_CFG_PATH"
 ENVVAR_LOG_CFG_PATH = "BANKINGSERVICE_LOGCFG_PATH"
+ENVVAR_EXECUTION_PROFILE = "BANKINGSERVICE_PROFILE"
 ARGUMENT_CFG_PATH = "--cfg"
 ARGUMENT_LOG_CFG_PATH = "--logCfg"
+ARGUMENT_EXECUTION_PROFILE = "--profile"
 
 class Service:
     async def process(self) -> str:
@@ -24,21 +26,39 @@ class Service:
 
 class BankingService(BaseService):
 
+    _LOG: Logger = LoggerFactory.getLogger("service.BankingService")
+
     service_config: ServiceConfig
 
     customer_DAO: SqliteCustomerDAO
     customer_CRUD_controller: CustomerCRUDController
 
+    def __init__(self, app_type = None, execution_profile = None, config_file_path = None, log_config_file_path = None):
+        # this way the BaseService will also use our logger (at least in istance methods) - better loeg readability...
+        self._LOG = BankingService._LOG
+        super().__init__(app_type, execution_profile, config_file_path, log_config_file_path)
 
-    def _buildDependencies(self) -> None:
-        BankingService.customer_DAO = SqliteCustomerDAO(config = self.configDict)
-        BankingService.customer_CRUD_controller = CustomerCRUDController(config=self.configDict, customer_DAO=BankingService.customer_DAO)
+    def _build_dependencies(self, execution_profile: str = None) -> None:
 
-    def _loadConfig(self, configFilePath = None):
-        super()._loadConfig(configFilePath)
+        self._LOG.info("building dependencies for execution profile '%s' ...", execution_profile)
+
+        match execution_profile:
+            case None | "prod":
+                BankingService.customer_DAO = SqliteCustomerDAO(config = self.config_dict)
+                BankingService.customer_CRUD_controller = CustomerCRUDController(config=self.config_dict, customer_DAO=BankingService.customer_DAO)
+            case _:
+                err = f"Unkown profile '{execution_profile}'! Can not build dependencies for this setup..."
+                BankingService._LOG.error(err)
+                raise RuntimeError(err)
+
+        self._LOG.debug("dependencies built and wired successfuly")
+
+
+    def _load_config(self, configFilePath = None):
+        super()._load_config(configFilePath)
 
         # let's transform the config Dict into our class based config model
-        configObj = ServiceConfig(**self.configDict)
+        configObj = ServiceConfig(**self.config_dict)
         BankingService.service_config = configObj
         
 
@@ -50,44 +70,54 @@ def _startService() -> None:
                     )
     parser.add_argument(ARGUMENT_CFG_PATH, dest="cfg", default=None, required=False, help="path to the config .yaml file to use - you can also provide it via env variable " + ENVVAR_CFG_PATH)
     parser.add_argument(ARGUMENT_LOG_CFG_PATH, dest="logCfg", default=None, required=False, help="path to the logging config .yaml file to use - you can also provide it via env variable " + ENVVAR_LOG_CFG_PATH)
+    parser.add_argument(ARGUMENT_EXECUTION_PROFILE, dest="executionProfile", default=None, required=False, help="in which execution profile you want to launch the service - you can also provide it via env variable " + ENVVAR_EXECUTION_PROFILE)
     args = vars(parser.parse_args())
 
     # Observability needs global labels - let's build it
-    globalLabels = buildGlobalLabels()
+    global_labels = buildGlobalLabels()
 
     # Now as a very first step let's configure the logging - we need it badly
-    logCfgFilePath = args["logCfg"]
-    if logCfgFilePath == None:
+    log_cfg_file_path = args["logCfg"]
+    if log_cfg_file_path == None:
         # fallback to env variable
-        logCfgFilePath = os.environ.get(ENVVAR_LOG_CFG_PATH)
-    if logCfgFilePath == None:
+        log_cfg_file_path = os.environ.get(ENVVAR_LOG_CFG_PATH)
+    if log_cfg_file_path == None:
         print("WARNING! You did not provide log config file location... You could/should by using either "+ARGUMENT_LOG_CFG_PATH+" command line argument or "+ENVVAR_LOG_CFG_PATH+" environment variable! Therefore for now we use basic log config...", file=sys.stderr)
-    LoggerFactory.configure_logging(logCfgFilePath=logCfgFilePath, globalLabels=globalLabels)
+    LoggerFactory.configure_logging(logCfgFilePath=log_cfg_file_path, globalLabels=global_labels)
 
     # now obtain a logger and stat chitchatting from now
     LOG = LoggerFactory.get_logger('main')
 
     LOG.info("logging is now configured!")
 
-    cfgFilePath = args["cfg"]
-    if cfgFilePath == None:
-        cfgFilePath = os.environ.get(ENVVAR_CFG_PATH)
-    if cfgFilePath == None:
+    cfg_file_path = args["cfg"]
+    if cfg_file_path == None:
+        cfg_file_path = os.environ.get(ENVVAR_CFG_PATH)
+    if cfg_file_path == None:
         # not good!
         LOG.error("Oops! You did not provide config file location... Service does not know how to configure itself. Please use either "+ARGUMENT_CFG_PATH+" command line argument or "+ENVVAR_CFG_PATH+" environment variable!")
         exit(1)
-    LOG.info("config file to be used: %s", cfgFilePath)
+    LOG.info("config file to be used: %s", cfg_file_path)
+
+    execution_profile = args["executionProfile"]
+    if execution_profile == None:
+        execution_profile = os.environ.get(ENVVAR_EXECUTION_PROFILE)
+    LOG.info("execution profile of the service is: %s", execution_profile)
 
     # Let's create the service instance
-    service = BankingService(appType=AppType.FastAPI, configFilePath=cfgFilePath, logConfigFilePath=logCfgFilePath)
+    service = BankingService(app_type=AppType.FastAPI, config_file_path=cfg_file_path, log_config_file_path=log_cfg_file_path)
     
     # bind the FastAPI handlers
     app: FastAPI = service.get_FastAPI_app()
-    customer_handler = CustomerHandlerV1(customer_crud_contoller=BankingService.customer_CRUD_controller, service_config=BankingService.service_config)
-    customer_handler.attach_to_http_server(app)
+    customer_handlers = CustomerHandlerSetV1(
+        # dependency injection
+        service_config=BankingService.service_config,
+        customer_crud_contoller=BankingService.customer_CRUD_controller
+    )
+    customer_handlers.attach_to_http_server(app)
 
     # finally, fire it up
-    service.startServiceAndWaitForExit()
+    service.start_service_and_wait_for_exit()
 
 # We fire up the service if we are the Main!
 if __name__ == "__main__":

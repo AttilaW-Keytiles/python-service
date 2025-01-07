@@ -5,7 +5,7 @@ A simple service implemented in Python to handle Customers and Bank accounts CRU
 
 # How to use?
 
-Service comes with an HTTP API - as a start see [banking-api.yaml](api/banking-api.yaml) OpenApi contract for details! (Preferably use Swagger UI on it!)
+Service comes with an HTTP API - as a start see [banking-api.yaml](api/banking-api-v1.yaml) OpenApi contract for details! (Preferably use Swagger UI on it!)
 
 To fire up the Service locally
  * Python-native way: just use `run-service.sh`.

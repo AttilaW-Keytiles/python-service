@@ -23,49 +23,54 @@ class BaseService:
 
     _LOG: Logger = LoggerFactory.getLogger("service.BaseService")
 
-    # Our Singleton instance
     _instance: any = None
+    """Our Singleton instance"""
 
-    @staticmethod
-    def get_instance() -> any:
-        return BaseService._instance
+    @classmethod
+    def get_instance(cls) -> any:
+        return cls._instance
 
-    @staticmethod
-    def _must_get_instance() -> any:
-        if BaseService._instance == None:
+    @classmethod
+    def _must_get_instance(cls) -> any:
+        if cls._instance == None:
             err = "Operation failed! No service instance yet. First you need to extend BaseService class and create an instance!"
-            BaseService._LOG.error(err)
+            cls._LOG.error(err)
             raise RuntimeError(err)
-        return BaseService._instance
+        return cls._instance
 
-    # From where the config is loaded
-    configFilePath: str
-    # The parsed config - in Dict form
-    configDict: dict[str, any] = None
+    config_file_path: str
+    """From where the config is loaded"""
 
-    def get_FastAPI_app() -> fastapi.FastAPI:
+    config_dict: dict[str, any] = None
+    """The parsed config - in Dict form"""
+
+    @classmethod
+    def get_FastAPI_app(cls) -> fastapi.FastAPI:
         """
         Returns the singleton service instance underlying FastAPI app - if the service is that appType and you already have service instance. Fails otherwise.
         """
-        instance = BaseService._must_get_instance()
+        instance = cls._must_get_instance()
         return instance.get_FastAPI_app()
 
 
     # Ideas taken from https://www.geeksforgeeks.org/singleton-pattern-in-python-a-complete-guide/ but decided with this - this way it can be overriden still works
-    def __init__(self, appType: AppType = None, configFilePath: str = None, logConfigFilePath: str = None):
+    def __init__(self, app_type: AppType = None, execution_profile: str = None, config_file_path: str = None, log_config_file_path: str = None):
         """
         Creates a service instance of the given `appType`.
 
         Parameters:
-         * `appType` - one of the supported Application types
-         * `configFilePath` - which will be parsed and stored as config of this app.
+         * `app_type` - one of the supported Application types
+         * `execution_profile` - dependency injection makes it possible to bootstrap the app in different profiles, this is the name of that profile (comes from command line or env variable eventually)
+         * `config_file_path` - which will be parsed and stored as config of this app.config_file_path
+         * `log_config_file_path` - which will be used to configure python.logging
         """
 
-        self._LOG = BaseService._LOG
+        if self._LOG == None:
+            self._LOG = BaseService._LOG
 
-        self._LOG.debug("Instantiating service of appType '%s'...", appType)
+        self._LOG.debug("Instantiating service of appType '%s' for execution profile '%s'...", app_type, execution_profile)
 
-        self._logConfigFilePath = logConfigFilePath
+        self._logConfigFilePath = log_config_file_path
 
         # do we have an instance now already?
         if BaseService._instance != None:
@@ -78,48 +83,51 @@ class BaseService:
         self._LOG.debug("instance registered")
 
         # let's load the config from the file
-        self._loadConfig(configFilePath=configFilePath)
+        self._load_config(configFilePath=config_file_path)
 
         # let's create the underlying application
         self._LOG.debug("creating underlying App...")
-        self._appType = appType
+        self._appType = app_type
         self._app = None
-        match appType:
+        match app_type:
             case AppType.FastAPI:
-                self._createFastAPIApp()
+                self._create_fastAPI_app()
             case _:
-                err = f"Failed to create instance - unknown application type: {appType}"
+                err = f"Failed to create instance - unknown application type: {app_type}"
                 self._LOG.error(err)
                 raise RuntimeError(err)
         self._LOG.debug("underlying App created")
         
 
         # give the chance to the subclass now to build it's dependencies!
-        self._buildDependencies()
+        self._build_dependencies()
             
-    def _buildDependencies(self) -> None:
+    def _build_dependencies(self, execution_profile: str = None) -> None:
         """
         Abstract method you need to implement in your subclass. This is invoked during constructor mechanism after config is loaded. And now you have your chance
         to create / store / wire together all your business objects your Service will use.
+
+        Parameters:
+        * `execution_profile`: Optionally you get for which profile you should build up your deps now. (Comes from command line or env var eventually)
         """
         ...
 
     # Private helper. The type is FastAPI so this method is creating a FastAPI app
-    def _createFastAPIApp(self) -> None:
+    def _create_fastAPI_app(self) -> None:
         self._app = fastapi.FastAPI()
 
     # Private helper. Loading the config file and storing it's Dict form in the service
-    def _loadConfig(self, configFilePath: str = None) -> None:
+    def _load_config(self, configFilePath: str = None) -> None:
         self._LOG.debug("loading config from '%s' ...", configFilePath)
 
         if configFilePath == None:
-            self.configDict = dict()
+            self.config_dict = dict()
         else:
             # for now we take only .yaml file
             if configFilePath.lower().endswith(".yaml") or configFilePath.lower().endswith(".yml"):
                 with open(configFilePath) as f:
                     try:
-                        self.configDict = yaml.safe_load(f)
+                        self.config_dict = yaml.safe_load(f)
                     except yaml.YAMLError as e:
                         err = f"Failed to load config from '{configFilePath}' due to error: {e}"
                         self._LOG.error(err)
@@ -132,7 +140,7 @@ class BaseService:
         self._LOG.debug("config is loaded into Dict form now")
 
 
-    def startServiceAndWaitForExit(self):
+    def start_service_and_wait_for_exit(self):
         """
         Starts the service in a blocking fashion. This means service will wait for Term signal.
         """
@@ -140,7 +148,7 @@ class BaseService:
 
         if self._appType == AppType.FastAPI:
             # let's see if we have "fast_api" section in our config! if yes convert it into our config model
-            fast_api_conf = FastAPIConfig(**simple_dict_util.dict_getDictByAny(theDict=self.configDict, keys={"fast_api", "fastAPI", "fastApi"}, default=dict()))
+            fast_api_conf = FastAPIConfig(**simple_dict_util.dict_getDictByAny(theDict=self.config_dict, keys={"fast_api", "fastAPI", "fastApi"}, default=dict()))
             conf = {
                 'host': 'localhost'
             }
@@ -152,7 +160,7 @@ class BaseService:
             uvicorn.run(self._app, **conf)
 
     # TODO Implement or remove! Come back to it later once we figured out how we want to do this!
-    def stopService(self):
+    def stop_service(self):
         """
         Stops the running service.
         """

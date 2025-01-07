@@ -6,7 +6,7 @@ from src.observability.logging import LoggerFactory, Logger
 from src.controller.customer_crud import CustomerCRUDController
 from src.util import dependency_validator, ids
 from src.config.models import ServiceConfig
-from src.api.http.base_handler import BaseHTTPHandler
+from src.api.http.base_fastapi_handler_set import BaseFastAPIHandlerSet
 from src.context.contexts import FastAPIHttpExecutionContext
 from pydantic import BaseModel
 
@@ -35,7 +35,7 @@ class CustomerAPIException(HTTPException):
         return s
 
 
-class CustomerHandlerV1(BaseHTTPHandler):
+class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
     """
     This handler class is bound to FastAPI HTTP server to deal with Customer related endpoints.
 
@@ -82,8 +82,8 @@ class CustomerHandlerV1(BaseHTTPHandler):
 
     def _do_attach_to_http_server(self, app: FastAPI) -> None:
         router = APIRouter()
-        router.add_api_route(CustomerHandlerV1.BASE_REST_URI + "/{customerId}", self.get_customer_proxy, methods=["GET"])
-        router.add_api_route(CustomerHandlerV1.BASE_REST_URI, self.create_customer_proxy, methods=["POST"])
+        router.add_api_route(CustomerHandlerSetV1.BASE_REST_URI + "/{customerId}", self.get_customer_proxy, methods=["GET"])
+        router.add_api_route(CustomerHandlerSetV1.BASE_REST_URI, self.create_customer_proxy, methods=["POST"])
         app.include_router(router)
         app.add_exception_handler(CustomerAPIException, self.customer_api_exception_handler)
 
@@ -176,5 +176,5 @@ class CustomerHandlerV1(BaseHTTPHandler):
 
         msgResp: MessageResponse = self._get_prepared_MessageResponse(cntx = cntx)
         msgResp.message = "Customer created"
-        resp = self._get_prepared_http_response(bodyModel = msgResp, cntx = cntx, headers={"x-customer-id": bodyObject.version})
+        resp = self._get_prepared_http_response(bodyModel = msgResp, cntx = cntx, headers={"x-customer-id": bodyObject.id})
         return resp

@@ -6,7 +6,7 @@ from src.context.contexts import FastAPIHttpExecutionContext, ExecutionContext
 from src.model.api.generated.common_v1 import MessageResponse
 from pydantic import BaseModel
 
-class BaseHTTPHandler:
+class BaseFastAPIHandlerSet:
     """
     The superclass of all of our request handler classes. This way we can standardize behavior and provide common methods/features easily for concrete request handlers.
     """
@@ -113,6 +113,7 @@ class BaseHTTPHandler:
         # assemble headers
         respHeaders = dict()
         if headers != None:
+            # TODO we should make sure all values are converted to str! Otherwise if user puts in an 'int' for example then an error is raised
             respHeaders.update(headers)
         # we add headers from the context 2nd step - because they take precedence in case of conflict
         if cntx != None:
