@@ -8,30 +8,31 @@ A simple service implemented in Python to handle Customers and Bank accounts CRU
 Service comes with an HTTP API - as a start see [banking-api.yaml](api/banking-api-v1.yaml) OpenApi contract for details! (Preferably use Swagger UI on it!)
 
 To fire up the Service locally
- * Python-native way: just use `run-service.sh`.
- * Alternatively you can also fire up as a Docker container (TODO Later! Not implemented yet)
+ * First of all make sure you have Python installed. Just quickly
+    * Open a Terminal (Linux)
+    * execute: `$ python -version`
+    * Did it work? If not then you dont have Python properly installed. Install it!
+ * Python-native way: just use `run-service.sh`.  
+   This will build everything needed to run the Service locally.
+ * Alternatively, you can also fire up as a Docker container (**TODO** Later! Not implemented yet)
 
 # Versioning and changes
 
 We follow [Semantic versioning](https://semver.org/) with the code. For detailed changes see [CHANGELOG](CHANGELOG.md) for more details.
 
-**PLEASE NOTE!** Version of the code is not equal to version of public interfaces! Public interfaces (e.g. HTTP API) has it's own versions!
+**PLEASE NOTE!** Version of the code is not equal to version of public interfaces! Public interfaces (e.g. HTTP API) have their own versions!
+
+
 
 # How to contribute?
 
 Later... :-P but useful section
 
-# For contributors
+# For contributors / developers
 
 ## Getting started
 
-First of all make sure you have Python installed. Just quickly
- 1. Open a Terminal (Linux)
- 1. execute: `$ python -version`
-
-Did it work? Good! Not? Then install Python!
-
-You also need a nice IDE - consider using VSCode maybe.
+You will need a nice IDE - consider using VSCode maybe.
 
 ### Virtual Env
 
@@ -41,18 +42,55 @@ When you cloned the repo fresh execute the following command once to get the env
  1. Open a Terminal (Linux) and go to the project folder
  1. Execute the init script: `$ dev-init.sh`
 
-Now you have the Python environment with all used dependencies.
+Now you have the Python environment with all used dependencies - **including Test dependencies!**
 
 When you want to run the code you need to activate this environment:
  1. Open a Terminal (Linux) and go to the project folder
- 1. execute: `$ source .venv/Scripts/activate` OR alternatively you can just use `run-service.sh`
+ 1. execute: `$ source .venv/Scripts/activate` OR alternatively you can just use simply `run-service.sh`
+
+## Debug the code
+
+To debug the code:
+ 1. In VSCode just open `main.py`
+ 1. You need to pass some arguments on command line so you add launch config. The main point is you have a `.vscode` folder in you project and `launch.json` inside in which
+    you should have a `"args"` entry to make sure service starts using the prepared config and log-config, like this:
+    ```yaml
+    "configurations": [
+
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["--cfg", "local_workfolder/conf/config.yaml", "--logCfg", "local_workfolder/conf/log-config.yaml"]
+        }
+    ]    
+    ```
+  1. Now you can hit the "Run & Debug" icon on the left and simply start the launch config. It should bootstrap everything nicely
+
+## Run tests
+
+Tests are located in the `/test` folder on the project root.
+
+They follow the same package structure az code does under `/src` folder.
+
+Tests are written in **PyTest**.
+
+To run them from command line
+ 1. Open a Terminal (Linux)
+ 1. execute `$ python -m pytest`  
+    (this will help on problem described here: https://stackoverflow.com/questions/20985157/py-test-no-module-named)
+
+To run individual tests from VSCode right-click, you need to configure your VSCode just once.  
+I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-vscode/
 
 
 ## Design decisions / considerations
 
 ### General remarks
 
- 1. First of all a quick note: Python is not really my "primary language" to implement services or more complex problems... :-)
+ 1. First of all a quick note: Python is not really my "primary language" to implement services or complex problems... :-)
     So excuse my (likely) language related newbie mistakes - just be gentle with me... Thanks!
 
  1. Intentionally wrote / designed some things the way it can (should) trigger some cool discussions... 

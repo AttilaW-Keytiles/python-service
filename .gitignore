@@ -13,3 +13,4 @@ src/*.egg-info/
 # exclude things to be committed from local_workfolder
 local_workfolder/data/*
 local_workfolder/logs/*
+local_workfolder/tmp/*

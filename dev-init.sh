@@ -6,6 +6,13 @@ if [ -d ".venv" ]; then
   exit 0
 fi
 
+# build local_workfolder dirs
+echo "Initializing local_workfolder ..."
+mkdir local_workfolder/data
+mkdir local_workfolder/logs
+mkdir local_workfolder/tmp
+echo "done"
+
 # create virtual env
 echo "Creating virtual environment..."
 python -m venv .venv
@@ -16,7 +23,7 @@ echo "environment is activated"
 
 # time to install dependencies
 echo "installing dependencies..."
-pip install -e .
+pip install -e '.[dev]'
 echo "done"
 
 echo "init script is finished!"

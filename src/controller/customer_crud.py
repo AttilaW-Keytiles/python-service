@@ -75,7 +75,7 @@ class CustomerCRUDController:
         preconditions.check_argument(customer_data != None, "'customer_data' can not be None")
 
         # let's auto-set ID if not provided
-        if strings.isBlank(customer_data.id):
+        if strings.is_blank(customer_data.id):
              customer_data.id = ids.generate_uuid()
              self._LOG.debug("'id' was empty - generated new 'id': %s", customer_data.id, **labels)
 

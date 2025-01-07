@@ -3,13 +3,16 @@ from src.observability.logging import LoggerFactory, Logger
 from src.context.contexts import ExecutionContext
 from src.error import errors
 import sqlite3
-import os
+from src.util import preconditions
 
 class SqliteDB:
 
     def __init__(self, config: SqliteConfig = None):
         self._LOG: Logger = LoggerFactory.getLogger("service.persistence.SqliteDB")
         self._LOG.info("will provide connections to db file: %s ...", config.db_file)
+
+        # we have problems here for now with sharing stuff... not time now to fix this so until that let's avoid!
+        preconditions.check_argument(config.db_file != ":memory:", "Oops! Sorry, memory mode does not work yet...")
 
         self.config = config
         """The cofing we use"""

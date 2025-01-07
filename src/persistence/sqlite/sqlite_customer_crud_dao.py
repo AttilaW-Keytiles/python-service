@@ -30,13 +30,13 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
     def _create_db_schema_if_not_exist(self) -> None:
         self._LOG.info("generating DB schema - if not exists...")
 
+        schema_files = self.config.schema_files.get("customers")
+        preconditions.check_argument(schema_files != None and isinstance(schema_files, list), "SqliteConfig error! /schema_files/customers entry must be present and it must be a list[str]")
+
         conn = self.db.get_connection()
 
         for file_path in schema_files:
             try:
-                schema_files = self.config.schema_files.get("customers")
-                preconditions.check_argument(schema_files != None and isinstance(schema_files, list), "SqliteConfig error! /schema_files/customers entry must be present and it must be a list[str]")
-
                 with open(file_path) as f:
                         self._LOG.debug("   executing schema file: %s ...", file_path)
                         script = f.read()
@@ -62,7 +62,8 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
 
         try:
             # this way we will also log the stuff
-            preconditions.check_argument(strings.isNotBlank(customer_data.id), "'id' in Customer record can not be blank")
+            preconditions.check_argument(customer_data != None and isinstance(customer_data, Customer), "'customer_data' parameter must be provided and it must be Customer type")
+            preconditions.check_argument(strings.is_not_blank(customer_data.id), "'id' in 'customer_data' Customer record can not be blank")
 
             # does record already exist?
             # quick solution now... read back
@@ -102,15 +103,14 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
 
         try:
             # this way we will also log the stuff
-            preconditions.check_argument(strings.isNotBlank(customer_id), "'customer_id' can not be blank")
+            preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")
 
             # we always use params - SQL Injection danger!!
-            query = "SELECT id, name, email, version FROM customer WHERE id=?"
+            query = "SELECT id, name, email, version FROM customer WHERE id=:id"
             cr = conn.cursor()
             params = {
                 "id": customer_id,
             }
-            cr.execute(query, params)
             cr.execute(query, params)
             row = cr.fetchone()
             if row != None:
@@ -142,7 +142,7 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
 
         try:
             # this way we will also log the stuff
-            preconditions.check_argument(strings.isNotBlank(customer_id), "'customer_id' can not be blank")
+            preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")
 
             query = "DELETE FROM customer WHERE id=:id"
             cr = conn.cursor()
@@ -153,9 +153,9 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
             conn.commit()
 
         except Exception as e:
-                err = f"Failed to insert Customer due to error: {e}"
+                err = f"Failed to delete Customer due to error: {e}"
                 self._LOG.error(err, **labels)
-                raise errors.ServiceRuntimeError(err, ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED) from e
+                raise errors.ServiceRuntimeError(err, ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED) from e
         finally:
              conn.close()
 
