@@ -8,6 +8,7 @@ from src.util import dependency_validator, ids
 from src.config.models import ServiceConfig
 from src.api.http.base_fastapi_handler_set import BaseFastAPIHandlerSet
 from src.context.contexts import FastAPIHttpExecutionContext
+from src.error import errors
 from pydantic import BaseModel
 
 
@@ -17,7 +18,13 @@ class CustomerAPIException(HTTPException):
     This is ensured by a registered exception handler - customer_api_exception_handler() - bound to this type of exception.
     """
 
+    DETAILMSG_GENERIC_OP_FAILURE = "Operation failed - there is at least one error! See /problems entry for more details!"
+
     def __init__(self, status_code, detail = None, headers = None, problems: Problem|list[Problem] = None, cntx: FastAPIHttpExecutionContext = None):
+        # OK let's save some lazy crap... if one does not provide details...
+        if detail == None:
+            self.detail = CustomerAPIException.DETAILMSG_GENERIC_OP_FAILURE
+        # now we can init our superclass
         super().__init__(status_code, detail, headers)
 
         if problems != None and isinstance(problems, Problem):
@@ -25,6 +32,7 @@ class CustomerAPIException(HTTPException):
             problems = [problems]
         self.problems = problems
         self.cntx = cntx
+
 
     def __str__(self):
         s = type(self).__name__ + f"[status: {self.status_code}, message: {self.detail}, problems: {self.problems}"
@@ -147,7 +155,7 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
                 cntx = cntx,
                 status_code = status.HTTP_404_NOT_FOUND,
                 detail = "Customer does not exist",
-                problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.urlParam, placeName="customerId", errorCodes=[CommonErrorCodes.requestParameter_invalid], message="invalid customerId"))
+                problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.urlParam, placeName="{customerId}", errorCodes=[CommonErrorCodes.requestParameter_invalid], message="invalid customerId"))
 
         resp: Response = self._get_prepared_http_response(bodyModel=customer, cntx=cntx)
         return resp
@@ -167,14 +175,27 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
             raise CustomerAPIException(
                 cntx = cntx,
                 status_code = status.HTTP_400_BAD_REQUEST,
-                detail = "If you provide 'version' of the Customer resource during creation then you need to set it to 0 - or leave it out entirely.",
-                problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.requestBody, placeName="/version", errorCodes=[CommonErrorCodes.resourceVersion_mismatch], message="must be set to 0 or left out"))
+                #detail = CustomerAPIException.DETAILMSG_GENERIC_OP_FAILURE,
+                problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.requestBody, placeName="/version", errorCodes=[CommonErrorCodes.resourceVersion_mismatch], message="If you provide 'version' of the Customer resource during creation then you need to set it to 0 - or leave it out entirely."))
         # let's set version to 1
         bodyObject.version = 1
 
-        self._customer_crud_contoller.create(customer_data=bodyObject, cntx=cntx)
+        # we take back the id
+        bodyObject.id = self._customer_crud_contoller.create(customer_data=bodyObject, cntx=cntx)
 
         msgResp: MessageResponse = self._get_prepared_MessageResponse(cntx = cntx)
         msgResp.message = "Customer created"
-        resp = self._get_prepared_http_response(bodyModel = msgResp, cntx = cntx, headers={"x-customer-id": bodyObject.id})
+        resp = self._get_prepared_http_response(status_code = status.HTTP_201_CREATED, bodyModel = msgResp, cntx = cntx, headers={"x-customer-id": bodyObject.id})
         return resp
+    
+
+    def update_customer(self, cntx: FastAPIHttpExecutionContext, bodyObject: Customer):
+
+        customer_id: str = cntx.http_request.path_params.get("customerId")
+
+        if bodyObject.version == None:
+            raise CustomerAPIException(
+                cntx = cntx,
+                status_code = status.HTTP_400_BAD_REQUEST,
+                #detail = CustomerAPIException.DETAILMSG_GENERIC_OP_FAILURE,
+                problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.requestBody, placeName="/version", errorCodes=[CommonErrorCodes.resourceVersion_missing, CommonErrorCodes.information_missing], message="You must provide the 'version' of the Customer resource - as you know it from your GET request when you queried the Customer earlier."))

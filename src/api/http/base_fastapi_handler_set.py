@@ -5,8 +5,9 @@ from fastapi import Request, FastAPI, status, Response
 from src.context.contexts import FastAPIHttpExecutionContext, ExecutionContext
 from src.model.api.generated.common_v1 import MessageResponse
 from pydantic import BaseModel
+from abc import ABC, abstractmethod
 
-class BaseFastAPIHandlerSet:
+class BaseFastAPIHandlerSet(ABC):
     """
     The superclass of all of our request handler classes. This way we can standardize behavior and provide common methods/features easily for concrete request handlers.
     """
@@ -41,10 +42,10 @@ class BaseFastAPIHandlerSet:
         # and now allow the subclass to attach himself too
         self._do_attach_to_http_server(app=app)
 
-
+    @abstractmethod
     def _do_attach_to_http_server(self, app: FastAPI) -> None:
         """
-        Abstract method - derived handler classes should implement and bind themselves here - DO NOT override the 'attach_to_http_server()' method!
+        Abstract method - derived handler classes should implement and bind themselves here - DO NOT override the 'attach_to_http_server()' method! No point. This method is invoked from there.
         """
         ...
         

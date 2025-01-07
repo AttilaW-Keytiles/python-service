@@ -5,13 +5,15 @@ from enum import Enum
 import yaml
 from src.util import simple_dict_util
 from src.config.models import FastAPIConfig
+from src.error import errors
+from abc import ABC, abstractmethod
 
 # more can follow if we need... comes with more work too... :-P
 class AppType(Enum):
     FastAPI = 1
 
 
-class BaseService:
+class BaseService(ABC):
     """
     Abstract Class to abstracting away the concrete underlying App framework / implementation.
     To use this you need to extnd this class in your business logic and implement the abstract methods.
@@ -35,7 +37,7 @@ class BaseService:
         if cls._instance == None:
             err = "Operation failed! No service instance yet. First you need to extend BaseService class and create an instance!"
             cls._LOG.error(err)
-            raise RuntimeError(err)
+            raise errors.ServiceRuntimeError("unknown_execution_profile", err)
         return cls._instance
 
     config_file_path: str
@@ -101,7 +103,8 @@ class BaseService:
 
         # give the chance to the subclass now to build it's dependencies!
         self._build_dependencies()
-            
+    
+    @abstractmethod
     def _build_dependencies(self, execution_profile: str = None) -> None:
         """
         Abstract method you need to implement in your subclass. This is invoked during constructor mechanism after config is loaded. And now you have your chance
@@ -156,6 +159,8 @@ class BaseService:
                 conf['port'] = fast_api_conf.http_port
             if self._logConfigFilePath != None:
                 conf['log_config'] = self._logConfigFilePath
+
+            self._LOG.info("HTTP server is listening on http://localhost:%s", fast_api_conf.http_port)
 
             uvicorn.run(self._app, **conf)
 

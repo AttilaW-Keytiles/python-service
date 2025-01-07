@@ -86,6 +86,10 @@ components:
       - requestParameter_conflict
       # In REST style endpoints we use resource versioning to detect and avoid issues might be caused by race conditions. When this situation is detected the endpoint is raising this error so the caller knows he should start over the whole thing because someone else has modified the same resource just in parallel.
       - resourceVersion_mismatch
+      # In REST style endpoints we use resource versioning to detect and avoid issues might be caused by race conditions. To detect this caller must send his 'assumed' resource version.
+      - resourceVersion_missing
+      # In very general - some infor which is mandatory to be sent is not sent
+      - information_missing
       # This might come if in the request client is using a field which is already deprecated
       - field_deprecated
       # In some situations server might realize we got contradicting data

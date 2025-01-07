@@ -2,13 +2,16 @@
 fast_api:
   http_port: 8080
 
-http_server:
-  port: "8080"
-
 persistence:
-  implementation: sqlite
-  params:
-    something: 'buuu'
+  # if sqlite is used then here is its config
+  sqlite:
+    # note: you can use also the literal ":memory:" here - if you prefer only one-go memory persistence
+    # otherwise point to the file
+    db_file: local_workfolder/data/sqlite.db
+    schema_files:
+      # used by SqliteCustomerDAO
+      customers:
+        - 'src/persistence/sqlite/schema_customer.sql'
 
 metrics:
   is_enabled: true

@@ -5,11 +5,12 @@ from src.observability.logging import LoggerFactory, Logger
 from src.observability.common import buildGlobalLabels
 from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
-from src.persistence.sqlite_customer_crud_dao import SqliteCustomerDAO
+from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
+from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
+from src.error import errors
 from fastapi import FastAPI
-
 
 
 ENVVAR_CFG_PATH = "BANKINGSERVICE_CFG_PATH"
@@ -29,9 +30,13 @@ class BankingService(BaseService):
     _LOG: Logger = LoggerFactory.getLogger("service.BankingService")
 
     service_config: ServiceConfig
-
-    customer_DAO: SqliteCustomerDAO
+    """Our parsed config"""
     customer_CRUD_controller: CustomerCRUDController
+    """Reference to the customer CRUD based controller"""
+
+    sqlite_db: SqliteDB
+    """We keep this as it must be closed properly during shutdown"""
+
 
     def __init__(self, app_type = None, execution_profile = None, config_file_path = None, log_config_file_path = None):
         # this way the BaseService will also use our logger (at least in istance methods) - better loeg readability...
@@ -44,12 +49,18 @@ class BankingService(BaseService):
 
         match execution_profile:
             case None | "prod":
-                BankingService.customer_DAO = SqliteCustomerDAO(config = self.config_dict)
-                BankingService.customer_CRUD_controller = CustomerCRUDController(config=self.config_dict, customer_DAO=BankingService.customer_DAO)
+
+                # persistence layer
+                BankingService.sqlite_db: SqliteDB = SqliteDB(config = BankingService.service_config.persistence_config.sqlite_config)
+                customer_DAO = SqliteCustomerDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
+
+                # controller layer
+                BankingService.customer_CRUD_controller = CustomerCRUDController(config=self.config_dict, customer_DAO=customer_DAO)
+
             case _:
                 err = f"Unkown profile '{execution_profile}'! Can not build dependencies for this setup..."
                 BankingService._LOG.error(err)
-                raise RuntimeError(err)
+                raise errors.ServiceRuntimeError("unknown_execution_profile", err)
 
         self._LOG.debug("dependencies built and wired successfuly")
 
@@ -86,7 +97,7 @@ def _startService() -> None:
     LoggerFactory.configure_logging(logCfgFilePath=log_cfg_file_path, globalLabels=global_labels)
 
     # now obtain a logger and stat chitchatting from now
-    LOG = LoggerFactory.get_logger('main')
+    LOG:Logger = LoggerFactory.get_logger('main')
 
     LOG.info("logging is now configured!")
 
@@ -118,6 +129,10 @@ def _startService() -> None:
 
     # finally, fire it up
     service.start_service_and_wait_for_exit()
+
+    LOG.info("shutting down...")
+    if BankingService.sqlite_db != None:
+        BankingService.sqlite_db.close()
 
 # We fire up the service if we are the Main!
 if __name__ == "__main__":
