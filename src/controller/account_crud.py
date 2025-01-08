@@ -135,12 +135,15 @@ class AccountCRUDController:
         if account_data.status == None:
             account_data.status = AccountStatus.active
         else:
-            # we need to check the value - it must be one of the valid enum values
-            if not preconditions.is_enum_value_valid(account_data.status, AccountStatus):
-            # Oops
-                err: str = f"Failed to create Account - provided 'status' is not a valid Account status!"
-                self._LOG.error(err, **labels)
-                raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.status")
+            if isinstance(account_data.status, str):
+                # we need to check the value - it must be one of the valid enum values
+                if not preconditions.is_enum_value_valid(account_data.status, AccountStatus):
+                # Oops
+                    err: str = f"Failed to create Account - provided 'status' is not a valid Account status!"
+                    self._LOG.error(err, **labels)
+                    raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.status")
+                # convert string to enum
+                account_data.status = AccountStatus(account_data.status)
 
         # and lest go!
         self._account_DAO.upsert(account_data = account_data, cntx = cntx)
@@ -175,7 +178,7 @@ class AccountCRUDController:
         # we should not modify the passed in object - so take a copy
         #account_data = deepcopy(account_data)
 
-        if account_data.id != None:
+        if account_data.id == None:
             # Oops...
             err: str = f"Failed to update Account - 'id' was not provided however it is mandatory"
             self._LOG.error(err, **labels)
@@ -218,15 +221,19 @@ class AccountCRUDController:
             # merge it in
             existing_account.customerId = account_data.customerId
 
-        if account_data.status != None and account_data.status != existing_account.status:
-            # we need to check the value - it must be one of the valid enum values
-            if not preconditions.is_enum_value_valid(account_data.status, AccountStatus):
-            # Oops
-                err: str = f"Failed to create Account - provided 'status' is not a valid Account status!"
-                self._LOG.error(err, **labels)
-                raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.status")
-            # merge it in
-            existing_account.status = account_data.status
+        if account_data.status != None:
+            if isinstance(account_data.status, str):
+                # we need to check the value - it must be one of the valid enum values
+                if not preconditions.is_enum_value_valid(account_data.status, AccountStatus):
+                # Oops
+                    err: str = f"Failed to update Account - provided 'status' is not a valid Account status!"
+                    self._LOG.error(err, **labels)
+                    raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.status")
+                # convert string to enum
+                account_data.status = AccountStatus(account_data.status)
+            if account_data.status != existing_account.status:
+                # merge it in
+                existing_account.status = account_data.status
 
         if account_data.balance != None:
             existing_account.balance = account_data.balance

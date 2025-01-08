@@ -948,7 +948,6 @@ components:
       description: Business object representing a Bank Account - belongs to a Customer.
       type: object
       required:
-        - id
         - customerId
       properties:
         id:

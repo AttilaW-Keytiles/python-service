@@ -11,7 +11,7 @@ import pytest
 serviceConfig: ServiceConfig = ServiceConfig(**{
     "persistence": {
         "sqlite": {
-            "db_file": "local_workfolder/tmp/_sqlite_customerDAO_test.db",
+            "db_file": "local_workfolder/tmp/_sqlite_CustomerCRUDController_test.db",
             "schema_files": {"customers": ["db_schemas/sqlite/schema_customers.sql"]}            
         }
     }

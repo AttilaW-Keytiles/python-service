@@ -8,7 +8,13 @@ def check_argument(condition_fulfill: bool, err_msg_template: str, *args, **kwar
         raise ValueError(err)
     
 def is_enum_value_valid(the_value_to_test: any, the_enum_type: Enum) -> bool:
-    return the_value_to_test == None or the_value_to_test in {status.value for status in the_enum_type}
+    if any == None:
+        return True
+    if isinstance(the_value_to_test, the_enum_type):
+        return True
+    if isinstance(the_value_to_test, str):
+        return the_value_to_test in {status.value for status in the_enum_type}
+    return False
 
 def check_enum_value(the_value_to_test: any, the_enum_type: Enum, err_msg_template: str, *args, **kwargs):
     if not is_enum_value_valid(the_value_to_test, the_enum_type):
