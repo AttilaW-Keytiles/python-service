@@ -2,6 +2,7 @@
 fast_api:
   http_port: 8080
 
+# This section is used by objects in "persistence" package
 persistence:
   # if sqlite is used then here is its config
   sqlite:
@@ -11,7 +12,10 @@ persistence:
     schema_files:
       # used by SqliteCustomerDAO
       customers:
-        - 'db_schemas/sqlite/schema_customer.sql'
+        - 'db_schemas/sqlite/schema_customers.sql'
+      accounts:
+        - 'db_schemas/sqlite/schema_accounts.sql'
+
 
 metrics:
   is_enabled: true

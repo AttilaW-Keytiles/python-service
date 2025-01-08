@@ -387,3 +387,103 @@ components:
           type: string
           description: Optional. Stores the email address of the user. Ig given then this must follow email format.
           example: john.smith@domain.something
+
+    Account:
+      description: Business object representing a Bank Account - belongs to a Customer.
+      type: object
+      required:
+        - id
+        - customerId
+      properties:
+        id:
+          type: string
+          nullable: false
+          readOnly: true
+          description: >
+                      Unique ID of the bank account.  
+                        
+                      This is always generated server side to fulfill format. Therefore this attribute is read-only. You can not send it on create (POST) / update (PUT) requests.
+        customerId:
+          type: string
+          nullable: false
+          description: >
+                      Points to the ID of the Customer this account belongs to.
+        balance:
+          type: number
+          format: float
+          description: >
+                      The current ammount of money on this account.  
+                        
+                      Not read-only, however good point! Should be right? But for simplicity reasons for now let's just leave it so an operator can put / remove money from an account mannually... :-P
+        createdAt:
+          type: integer
+          readOnly: true
+          description: >
+                      When was this account opened? UNIX Timestamp (num of seconds since Epoch)  
+                        
+                      You can not modify this value - so it is read-only.
+        version:
+          type: integer
+          readOnly: true
+          description: This is the resource version starts from 1 and automatically incremented by every successful change server side. When you do an update (PUT) you need to send it back! The server will check if it is matching with the resource version he has. If not then that means someone else already did an update in the meantime therefore your request can not be accepted - otherwise you may overwrite the changes someone did.
+        
+    Transfer:
+      description: >
+                  Business object representing a money transfer btw two accounts.  
+                    
+                  FYI: a Transfer can not really be modified / deleted once created... It is an immutable fact. If an operator wants to "cancel" a certain transfer (s)he can create a reverse (opposite direction)
+                  transfer.
+      type: object
+      required:
+        - id
+        - amount
+        - sourceAccountId
+        - destinationAccountId
+      properties:
+        id:
+          type: string
+          readOnly: true
+          nullable: false
+          description: >
+                      Unique ID of the transfer - Timed UUID v4 style.  
+                        
+                      This is always generated server side to fulfill format. Therefore this attribute is read-only. You can not send it on create (POST) requests.
+        amount:
+          type: number
+          format: float
+          nullable: false
+          description: >
+                      The current ammount of money on this account.  
+                        
+                      Not read-only, however good point! Should be right? But for simplicity reasons for now let's just leave it so an operator can put / remove money from an account mannually... :-P
+        sourceAccountId:
+          type: string
+          nullable: false
+          description: >
+                      Points to the ID of the Bank Account the money is deducted from. It can not be identical to the `destinationAccountId`!
+        destinationAccountId:
+          type: string
+          nullable: false
+          description: >
+                      Points to the ID of the Bank Account the money goes to. It can not be identical to the `sourceAccountId`!
+        createdAt:
+          type: integer
+          readOnly: true
+          description: >
+                      When did it happen? UNIX Timestamp (num of seconds since Epoch)  
+                        
+                      Generated on server side.
+        createdBy:
+          type: string
+          readOnly: true
+          description: >
+                      Who initiated this? For now simple textual info to have some audit log.  
+                        
+                      Generated on server side - based on the Authentication of the request created it.
+        status:
+          $ref: "#/components/schemas/TransferStatus"
+        
+    TransferStatus:
+      type: string
+      enum: ["created", "settled", "failed"]
+      description: Possible statuses of a Transfer.

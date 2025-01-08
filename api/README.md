@@ -13,3 +13,9 @@ However API version is always "major.minor" format in file naming we follow slig
 1. The most recent API of a major version is always kept in a file which is postfixed with the major version only using "-v{major}".
 1. When a file name contains "-v{major}.{minor}" version then this file is NOT the most recent one in major version but kind of an archived minor version. We keep them only for easier diff possibility so by comparing it to the "-v{major}" postfixed file name (or any other "-v{major}.{minor}") you can find the changes easier in between those two. This is very useful during upgrading your Client.
 
+# Generating models
+
+Once you changed the API you need to generate code from it. Use the [generate-models.sh](generate-models.sh) script for that!
+
+**NOTE!** Depending on your change you also might need to update the [generate-models.sh](generate-models.sh) script! E.g. when you introduce a new major version...
+

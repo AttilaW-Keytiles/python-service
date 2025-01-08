@@ -3,20 +3,27 @@ from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
 from src.controller.customer_crud import ICustomerCRUD_DAO
 from src.model.api.generated.banking_api_v1 import Customer
-from src.error import errors
+from src.model.error import errors
 import os
 from copy import deepcopy
+import pytest
 
 sqliteConfig: SqliteConfig = SqliteConfig(**{
     "db_file": "local_workfolder/tmp/_sqlite_customerDAO_test.db",
-    "schema_files": {"customers": ["db_schemas/sqlite/schema_customer.sql"]}
+    "schema_files": {"customers": ["db_schemas/sqlite/schema_customers.sql"]}
 })
 
-def createFreshDB() -> SqliteDB:
+@pytest.fixture(autouse=True)
+def ensureDBIsFlushed() -> None:
     # remove file
     if os.path.exists(sqliteConfig.db_file):
         os.remove(sqliteConfig.db_file)
-    return SqliteDB(config = sqliteConfig)
+
+def createDAO() -> SqliteCustomerDAO:
+    db: SqliteDB = SqliteDB(config = sqliteConfig)
+    # create our DAO on top of it
+    dao: SqliteCustomerDAO = SqliteCustomerDAO(config=sqliteConfig, db=db)
+    return dao
 
 
 def test_SqliteCustomerDAO_happypath_opSequence():
@@ -24,10 +31,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
 
     # ---- GIVEN
 
-    # we start from a fresh SqlitDB
-    db: SqliteDB = createFreshDB()
-    # create our DAO on top of it
-    dao: SqliteCustomerDAO = SqliteCustomerDAO(config=sqliteConfig, db=db)
+    dao: SqliteCustomerDAO = createDAO()
 
     customer_id1: str = "test-customer-1"
 
@@ -39,7 +43,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     # ---- THEN
 
     # we get back no record (DB is empty)
-    assert rec == None
+    assert None == rec
 
     # ---- WHEN
     # let's add a record
@@ -106,10 +110,7 @@ def _unhappypath_upsert_helper(customerToSendIn: any) -> Exception:
 
     # ---- GIVEN
 
-    # we start from a fresh SqlitDB
-    db: SqliteDB = createFreshDB()
-    # create our DAO on top of it
-    dao: SqliteCustomerDAO = SqliteCustomerDAO(config=sqliteConfig, db=db)
+    dao: SqliteCustomerDAO = createDAO()
 
     # ---- WHEN
     # we invoke the method with what we got
@@ -142,7 +143,7 @@ def test_SqliteCustomerDAO_unhappypath_upsert_wrongInputType():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to insert Customer" in strForm
@@ -174,7 +175,7 @@ def test_SqliteCustomerDAO_unhappypath_upsert_missingCurstomerId():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to insert Customer" in strForm
@@ -206,7 +207,7 @@ def test_SqliteCustomerDAO_unhappypath_upsert_emptyCurstomerId():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_UPSERT_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to insert Customer" in strForm
@@ -220,10 +221,7 @@ def _unhappypath_read_helper(customerIdToSendIn: any) -> Exception:
 
     # ---- GIVEN
 
-    # we start from a fresh SqlitDB
-    db: SqliteDB = createFreshDB()
-    # create our DAO on top of it
-    dao: SqliteCustomerDAO = SqliteCustomerDAO(config=sqliteConfig, db=db)
+    dao: SqliteCustomerDAO = createDAO()
 
     # ---- WHEN
     # we invoke the method with what we got
@@ -257,7 +255,7 @@ def test_SqliteCustomerDAO_unhappypath_read_wrongInputType():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_READ_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_READ_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to read Customer" in strForm
@@ -284,7 +282,7 @@ def test_SqliteCustomerDAO_unhappypath_read_NoneCustomerId():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_READ_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_READ_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to read Customer" in strForm
@@ -311,7 +309,7 @@ def test_SqliteCustomerDAO_unhappypath_read_emptyCustomerId():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_READ_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_READ_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to read Customer" in strForm
@@ -325,10 +323,7 @@ def _unhappypath_delete_helper(customerIdToSendIn: any) -> Exception:
 
     # ---- GIVEN
 
-    # we start from a fresh SqlitDB
-    db: SqliteDB = createFreshDB()
-    # create our DAO on top of it
-    dao: SqliteCustomerDAO = SqliteCustomerDAO(config=sqliteConfig, db=db)
+    dao: SqliteCustomerDAO = createDAO()
 
     # ---- WHEN
     # we invoke the method with what we got
@@ -362,7 +357,7 @@ def test_SqliteCustomerDAO_unhappypath_delete_wrongInputType():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to delete Customer" in strForm
@@ -389,7 +384,7 @@ def test_SqliteCustomerDAO_unhappypath_delete_NoneCustomerId():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to delete Customer" in strForm
@@ -416,7 +411,7 @@ def test_SqliteCustomerDAO_unhappypath_delete_emptyCustomerId():
     assert errThrown != None
     assert isinstance(errThrown, errors.ServiceRuntimeError)
     # the error code should conform the expectation...
-    assert errThrown.error_code == ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED
+    assert errThrown.has_error(ICustomerCRUD_DAO.ERRCODE_DELETE_FAILED)
     # and message should be meaningful - in String converted form! (as log will do exactly this)
     strForm = str(errThrown)
     assert "Failed to delete Customer" in strForm

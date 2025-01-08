@@ -6,7 +6,8 @@ from src.context.contexts import ExecutionContext
 from src.config.models import SqliteConfig
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.util import dependency_validator, preconditions, strings
-from src.error import errors
+from src.model.error import errors
+from copy import deepcopy
 
 class SqliteCustomerDAO(ICustomerCRUD_DAO):
     """

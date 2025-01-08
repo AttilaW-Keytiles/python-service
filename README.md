@@ -108,9 +108,10 @@ I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-
     * "Ports & Adapters" pattern - e.g. this way can start with SQLite persistence but has the possibility to switch later relatively cheap
     * Using interfaces opens a way to use "Dependancy injection" and more configurability - so let's do it!
     * Try design things the way out of the box we do not lock ourselves "too much" to any concrete libraries or frameworks.
+    * Implement DRY (Do not Repeat Yourself) - and eliminate boilerplate as much as possible - out of the business logic
 
  1. What I DID NOT bother with / skipped for now
-    * Sophicticated internal error handling - like "retry policy". Did not worth it with the task.
+    * Sophicticated error handling - like "retry policy", translation friendly errors etc. Did not worth it with the task.
     * Speed optimization. I skipped Python "async" topic for now.
     * Left out a few layers which are normally there in a product. (See API remark of error handling for example)
     * Extracting certain things into libs (e.g. 'observability' package) making them slim, inter-service reusable shared code.
@@ -163,13 +164,41 @@ If we want PROD ready (scrape ready) logs we need to format them into "1 line - 
    and control do. I have chosen transparncy here.
  * The API is relatively extensive but did not implement everything - too much time investment for a code challenge maybe? :-)
 
+### Handy tools
+
+Here are a few handy tools for your work:
+
+ * SQLite Browser - https://sqlitebrowser.org/dl/  
+   It's handy if you use the so far implemented Sqlite DB backend. The DB file you find where you configured to be :-) See [config.yaml](local_workfolder/conf/config.yaml) - `persistence/sqlite/db_file` entry!
+
+
  ## TODO
 
+Design related:
+ * DAO layer is using the generated models out of API for now. Mmmmmmm not good... DAO layer should have its own. See placeholder: [db TODO](src/model/db/TODO.md)
+
+Simple tasks:
  * logging: Uvicorn log integration is not good - comes with empty labels and this way would not be correctly collected.
    Should take a closer look into python.logging package to check if we can capture the LoggerFactory / Logger somehow. And if yes refactor our logging package to step in there too for providing global labels there too.
  * Python best practice: go through code and change all var/param/method names from camelCase to snake_case. camelCase is too much in my hand.. :-)
 
 ## Topics to talk about
 
+ * Just go through the API part bullets quickly. Many interesting topics are there...
+
  * Drawback of introducing MessageResponse into the API contract in case of 401, 403.
    Reminder: you must code, can not simply leverage framework-provided Auth no brainer
+
+ * Consequence of following "Clean architecture" - if we take principles by the book.  
+   Example: take a look on Controller <-> Persistence cooperation! Where we used "Ports & Adapters" pattern to
+   achieve inwards dependency. How would my DAO layer look like after having 10+ Controllers?
+
+ * Errors - take a look into [errors.py](src/model/error/).  
+   Yes, they are "models".
+
+ * The /src/context package - ExecutionContext
+
+ * Tests...  
+   One not bad unit test which is testing pretty good an Adapter is: [test\persistence\sqlite\sqlite_customer_crud_dao_test.py](test\persistence\sqlite\sqlite_customer_crud_dao_test.py).  
+   It is testing out the Adapter object - due to fact it is Unit test it fails fast, price is low.  
+   But! Only for the execution... What about maintenance? Overlap with Integration level tests. Do we need this so extensive??? Pros / Cons of this??? What to test where?

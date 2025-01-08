@@ -5,7 +5,7 @@ from enum import Enum
 import yaml
 from src.util import simple_dict_util
 from src.config.models import FastAPIConfig
-from src.error import errors
+from src.model.error import errors
 from abc import ABC, abstractmethod
 
 # more can follow if we need... comes with more work too... :-P

@@ -1,7 +1,7 @@
 from src.config.models import SqliteConfig
 from src.observability.logging import LoggerFactory, Logger
 from src.context.contexts import ExecutionContext
-from src.error import errors
+from src.model.error import errors
 import sqlite3
 from src.util import preconditions
 

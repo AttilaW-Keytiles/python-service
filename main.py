@@ -9,7 +9,7 @@ from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
-from src.error import errors
+from src.model.error import errors
 from fastapi import FastAPI
 
 
@@ -55,7 +55,7 @@ class BankingService(BaseService):
                 customer_DAO = SqliteCustomerDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
 
                 # controller layer
-                BankingService.customer_CRUD_controller = CustomerCRUDController(config=self.config_dict, customer_DAO=customer_DAO)
+                BankingService.customer_CRUD_controller = CustomerCRUDController(config=BankingService.service_config, customer_DAO=customer_DAO)
 
             case _:
                 err = f"Unkown profile '{execution_profile}'! Can not build dependencies for this setup..."

@@ -88,6 +88,8 @@ components:
       - resourceVersion_mismatch
       # In REST style endpoints we use resource versioning to detect and avoid issues might be caused by race conditions. To detect this caller must send his 'assumed' resource version.
       - resourceVersion_missing
+      # In REST style endpoints in Create (POST) operations you might run into this if you assign resource id (any) on client side and you try re-create a resource with an already used id
+      - id_already_used
       # In very general - some infor which is mandatory to be sent is not sent
       - information_missing
       # This might come if in the request client is using a field which is already deprecated

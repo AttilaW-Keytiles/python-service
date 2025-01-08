@@ -3,9 +3,10 @@ from src.observability.logging import LoggerFactory, Logger
 from src.util import dependency_validator
 from fastapi import Request, FastAPI, status, Response
 from src.context.contexts import FastAPIHttpExecutionContext, ExecutionContext
-from src.model.api.generated.common_v1 import MessageResponse
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
+from src.model.api.generated.common_v1 import MessageResponse
+from src.api.http.message_response_exception import MessageResponseException
 
 class BaseFastAPIHandlerSet(ABC):
     """
@@ -35,7 +36,7 @@ class BaseFastAPIHandlerSet(ABC):
         # in this we can attach exception handlers etc etc
         if not self._attached_once:
             self._LOG.debug("attaching one-time things to FastAPI app...")
-            #app.exception_handler()
+            app.add_exception_handler(MessageResponseException, self.messageresponseexception_handler)
             self._attached_once = True
             self._LOG.debug("one-time things done!")
         
@@ -50,13 +51,21 @@ class BaseFastAPIHandlerSet(ABC):
         ...
         
 
-    # async def generic_exception_handler(request: Request, exc: Exception):
-    #     return JSONResponse(
-    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-    #     content=jsonable_encoder({"detail": exc.errors(),  # optionally include the errors
-    #             "body": exc.body,
-    #              "custom msg": {"Your error message"}}),
-    # )
+    # This handler is registered to deal with MessageResponseException - which we convert into MessageResponse
+    # This helps us to fulfill our contract
+    def messageresponseexception_handler(self, request: Request, exc: MessageResponseException):
+        labels = exc.cntx.get_minimmal_info_for_log() if exc.cntx != None else dict()
+        # let's log the captured exception!
+        self._LOG.error("request failed! error was: %s\ntraceback: %s", exc, exc.__traceback__, **labels)
+
+        # we assemble the MessageResponse which will become the body
+        msgResp = self._get_prepared_MessageResponse(cntx = exc.cntx)
+        msgResp.message = exc.detail
+        msgResp.problems = exc.problems
+        # and now let's create the http response
+        resp = self._get_prepared_http_response(status_code=exc.status_code, headers=exc.headers, cntx=exc.cntx, bodyModel=msgResp)
+        return resp
+    
 
     # Subclasses can use this method to build a context
     def _create_execution_context(self, http_request: Request) -> FastAPIHttpExecutionContext:
