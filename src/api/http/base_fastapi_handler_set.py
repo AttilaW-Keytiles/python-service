@@ -1,4 +1,4 @@
-from src.config.models import ServiceConfig
+from src.model.config.models import ServiceConfig
 from src.observability.logging import LoggerFactory, Logger
 from src.util import dependency_validator
 from fastapi import Request, FastAPI, status, Response

@@ -1,4 +1,4 @@
-from src.config.models import ServiceConfig
+from src.model.config.models import ServiceConfig
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
 from src.controller.customer_crud import ICustomerCRUD_DAO, CustomerCRUDController

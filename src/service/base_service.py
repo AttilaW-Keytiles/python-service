@@ -4,7 +4,7 @@ from src.observability.logging import LoggerFactory, Logger
 from enum import Enum
 import yaml
 from src.util import simple_dict_util
-from src.config.models import FastAPIConfig
+from src.model.config.models import FastAPIConfig
 from src.model.error import errors
 from abc import ABC, abstractmethod
 

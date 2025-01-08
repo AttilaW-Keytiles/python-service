@@ -3,7 +3,7 @@ from src.model.api.generated.banking_api_v1 import Customer
 from src.observability.logging import LoggerFactory, Logger
 from typing import Union
 from src.context.contexts import ExecutionContext
-from src.config.models import SqliteConfig
+from src.model.config.models import SqliteConfig
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.util import dependency_validator, preconditions, strings
 from src.model.error import errors

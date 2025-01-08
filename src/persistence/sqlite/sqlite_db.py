@@ -1,4 +1,4 @@
-from src.config.models import SqliteConfig
+from src.model.config.models import SqliteConfig
 from src.observability.logging import LoggerFactory, Logger
 from src.context.contexts import ExecutionContext
 from src.model.error import errors

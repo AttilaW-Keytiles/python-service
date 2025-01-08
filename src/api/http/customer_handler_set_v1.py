@@ -5,7 +5,7 @@ from src.model.api.generated.common_v1 import MessageResponse, Problem, ProblemP
 from src.observability.logging import LoggerFactory, Logger
 from src.controller.customer_crud import CustomerCRUDController
 from src.util import dependency_validator, ids
-from src.config.models import ServiceConfig
+from src.model.config.models import ServiceConfig
 from src.api.http.base_fastapi_handler_set import BaseFastAPIHandlerSet
 from src.context.contexts import FastAPIHttpExecutionContext
 from pydantic import BaseModel

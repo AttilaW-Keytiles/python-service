@@ -7,7 +7,7 @@ from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
 from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
-from src.config.models import ServiceConfig
+from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
 from src.model.error import errors
 from fastapi import FastAPI

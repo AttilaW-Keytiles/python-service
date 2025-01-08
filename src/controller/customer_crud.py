@@ -3,7 +3,7 @@ from src.observability.logging import LoggerFactory, Logger
 from typing import Union
 from src.util import dependency_validator, preconditions, strings, ids
 from src.context.contexts import ExecutionContext
-from src.config.models import ServiceConfig
+from src.model.config.models import ServiceConfig
 from src.model.error import errors
 from abc import ABC, abstractmethod
 from copy import deepcopy
