@@ -5,7 +5,9 @@ from src.observability.logging import LoggerFactory, Logger
 from src.observability.common import buildGlobalLabels
 from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
+from src.controller.account_crud import AccountCRUDController
 from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
+from src.persistence.sqlite.sqlite_account_crud_dao import SqliteAccountDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
@@ -33,6 +35,8 @@ class BankingService(BaseService):
     """Our parsed config"""
     customer_CRUD_controller: CustomerCRUDController
     """Reference to the customer CRUD based controller"""
+    account_CRUD_controller: AccountCRUDController
+    """Reference to the account CRUD based controller"""
 
     sqlite_db: SqliteDB
     """We keep this as it must be closed properly during shutdown"""
@@ -42,6 +46,7 @@ class BankingService(BaseService):
         # this way the BaseService will also use our logger (at least in istance methods) - better loeg readability...
         self._LOG = BankingService._LOG
         super().__init__(app_type, execution_profile, config_file_path, log_config_file_path)
+
 
     def _build_dependencies(self, execution_profile: str = None) -> None:
 
@@ -53,9 +58,11 @@ class BankingService(BaseService):
                 # persistence layer
                 BankingService.sqlite_db: SqliteDB = SqliteDB(config = BankingService.service_config.persistence_config.sqlite_config)
                 customer_DAO = SqliteCustomerDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
+                accounts_DAO = SqliteAccountDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
 
                 # controller layer
                 BankingService.customer_CRUD_controller = CustomerCRUDController(config=BankingService.service_config, customer_DAO=customer_DAO)
+                BankingService.account_CRUD_controller = AccountCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, customer_DAO=customer_DAO)
 
             case _:
                 err = f"Unkown profile '{execution_profile}'! Can not build dependencies for this setup..."

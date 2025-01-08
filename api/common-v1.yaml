@@ -90,8 +90,16 @@ components:
       - resourceVersion_missing
       # In REST style endpoints in Create (POST) operations you might run into this if you assign resource id (any) on client side and you try re-create a resource with an already used id
       - id_already_used
-      # In very general - some infor which is mandatory to be sent is not sent
+      # In very general - some info which is mandatory to be sent is not sent
       - information_missing
+      # In very general - someone tries to change something which is read-only
+      - information_readonly
+      # In very general - provided information is invalid
+      - information_invalid
+      # In very general - provided information we do not need and should not be there
+      - information_pointless
+      # In very general - provided information has bad format
+      - information_wrongFormat
       # This might come if in the request client is using a field which is already deprecated
       - field_deprecated
       # In some situations server might realize we got contradicting data

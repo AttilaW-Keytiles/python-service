@@ -57,7 +57,17 @@ class MessageResponseException(HTTPException):
                 detail = exc.message + msgAddition,
                 problems = MessageResponseException._convert_exception_errorcodes_to_problems(error_codes = exc.error_codes, originalExc = exc)
             )
+            return handlerExc
 
+        if isinstance(exc, errors.ValidationError):
+            # should result in 400 by default
+            handlerExc = MessageResponseException(
+                cntx = cntx,
+                status_code = status.HTTP_400_BAD_REQUEST,
+                # the message of these type exceptions should be safe to be returned for users
+                detail = exc.message + msgAddition,
+                problems = MessageResponseException._convert_exception_errorcodes_to_problems(error_codes = exc.error_codes, originalExc = exc)
+            )
             return handlerExc
 
 
@@ -99,6 +109,31 @@ class MessageResponseException(HTTPException):
                     problems.append(
                         Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.resourceVersion_mismatch], message = msg)
                     )
+                case errors.ValidationError.ERRCODE_MISSING_MANDATORY:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.information_missing], message = "Mandatory information was not provided")
+                    if isinstance(originalExc, errors.ValidationError) and originalExc.place_name != None:
+                        problem.placeName = originalExc.place_name
+                    problems.append(problem)
+                case errors.ValidationError.ERRCODE_WRONG_DATATYPE:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.information_wrongFormat], message = "Wrong type of data was provided")
+                    if isinstance(originalExc, errors.ValidationError) and originalExc.place_name != None:
+                        problem.placeName = originalExc.place_name
+                    problems.append(problem)
+                case errors.ValidationError.ERRCODE_SHOULD_NOT_BE_PROVIDED:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.information_pointless], message = "This data was not expected to be provided")
+                    if isinstance(originalExc, errors.ValidationError) and originalExc.place_name != None:
+                        problem.placeName = originalExc.place_name
+                    problems.append(problem)
+                case errors.ValidationError.ERRCODE_INVALID_VALUE:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.information_invalid], message = "Provided data is not valid")
+                    if isinstance(originalExc, errors.ValidationError) and originalExc.place_name != None:
+                        problem.placeName = originalExc.place_name
+                    problems.append(problem)
+                case errors.ValidationError.ERRCODE_READONLY_VALUE_CHANGED:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.information_readonly], message = "Provided data is different from existing however existing data is read-only")
+                    if isinstance(originalExc, errors.ValidationError) and originalExc.place_name != None:
+                        problem.placeName = originalExc.place_name
+                    problems.append(problem)
                 case _:
                     unrecognized_codes.append(error_code)
         if len(unrecognized_codes) > 0:

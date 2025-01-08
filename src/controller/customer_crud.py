@@ -64,8 +64,6 @@ class CustomerCRUDController:
     and you must inject an implementation during construct time.
     """
 
-    _customer_DAO: ICustomerCRUD_DAO
-
     def __init__(self, config: ServiceConfig, customer_DAO: ICustomerCRUD_DAO):
         self._LOG: Logger = LoggerFactory.getLogger("service.controller.CustomerCRUDController")
 

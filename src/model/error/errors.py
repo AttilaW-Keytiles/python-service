@@ -40,6 +40,32 @@ class IllegalStateError(ServiceRuntimeError):
     pass
 
 
+class ValidationError(ServiceRuntimeError):
+    """
+    Controller and Persistence (DAO) layers can throw this error to describe they ran into a problem with the request they received.
+
+    E.g. format/type of something is not good.
+
+    This class provides a few pre-populated error codes - for typical situations
+    """
+
+    ERRCODE_WRONG_DATATYPE = "wrong_datatype"
+    """Use this error code if you expected something else as a type"""
+    ERRCODE_MISSING_MANDATORY = "mandatoy_info_missing"
+    """Use this error code if you expected a mandatory parameter but was not provided"""
+    ERRCODE_SHOULD_NOT_BE_PROVIDED = "should_not_be_provided"
+    """Use this error code if somewhere you expected to get nothing (e.g. a field should be None) but you got something"""
+    ERRCODE_INVALID_VALUE = "invalid_value"
+    """Use this error code if however data was provided it is not valid - content wise"""
+    ERRCODE_READONLY_VALUE_CHANGED = "readonly_value_changed"
+    """Use this error code if provided data is trying to change a value which actually is read-only"""
+
+    def __init__(self, message, error_codes = None, place_name: str = None, *args, **kwargs):
+        super().__init__(message, error_codes, place_name, *args, **kwargs)
+        self.place_name = place_name
+        """Some info about where exactly the problem is"""
+
+
 class ConstraintViolationError(ServiceRuntimeError):
     """
     Controller and Persistence (DAO) layers can throw this error to describe they ran into a "conflict" of something.
