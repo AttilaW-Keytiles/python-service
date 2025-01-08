@@ -15,12 +15,12 @@ info:
               API follows [Semantic versioning](https://semver.org/) - but no patch versions. You see more info in the README.md file of the folder!
 
 servers:
-- url: http://localhost:8080/api
+- url: http://localhost:8080
   description: Local dev server
   # of course the below does not work... but normally we would add it
-- url: https://banking-service.test.ourdomain.com/api
+- url: https://banking-service.test.ourdomain.com
   description: Our TEST environment
-- url: https://banking-service.ourdomain.com/api
+- url: https://banking-service.ourdomain.com
   description: Our PROD environment
 
 tags:
@@ -28,12 +28,14 @@ tags:
   description: Manage customer data
 - name: Bank Account management REST API
   description: Manage bank accounts of customers
+- name: Transfers management REST API
+  description: Manage transfers between bank accounts
 - name: Bank Account operations
   description: Actions you can do with bank accounts - RPC style
 
 paths:
 
-  '/v1/customers/rest':
+  '/api/v1/customers/rest':
 
     get:
       summary: Query multiple Customers in one-go.
@@ -55,6 +57,39 @@ paths:
           description: You get back a list of Customer resources - mathcing your search criteria. You might get back empty result of course.
           content:
             'application/json':
+              schema:
+                $ref: '#/components/schemas/CustomerSearchResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '400':
+          description: "There are problems with the creation request. Further information is available in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given auth"
+          content:
+            application/json:
               schema:
                 $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
           headers:
@@ -145,7 +180,7 @@ paths:
             'x-transaction-id':
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
 
-  '/v1/customers/rest/{customerId}':
+  '/api/v1/customers/rest/{customerId}':
 
     get:
       summary: To query a specific Customer
@@ -342,6 +377,507 @@ paths:
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
 
 
+  '/api/v1/accounts/rest':
+
+    get:
+      summary: Query multiple bank Accounts in one-go.
+      description: >
+                  Using the supported query parameters basically acts like a "Search". You MUST use at least one of the "narrowing" query parameters (valiud search) as returning all resources is not supported!
+      tags:
+      - Bank Account management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - name: accountIds
+        in: query
+        schema:
+          type: string
+        description: Comma separated list of multiple bank Account IDs to query. This limits the scope of all other query parameters to the listed ones. If a bank Account ID you specify here does not exist then you do not get it back in the response.
+      responses:
+        '200':
+          description: You get back a list of bank Account resources - mathcing your search criteria. You might get back empty result of course.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/CustomerSearchResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '400':
+          description: "There are problems with the creation request. Further information is available in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given auth"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+
+    post:
+      summary: Creates a new bank Account
+      description: >
+                  The ID of the account is generated by the server. Therefore this operation is not idempotent! So be careful with retry logic here! ;-)
+      tags:
+      - Bank Account management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      requestBody:
+        description: 'The bank Account resource to create.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '201':
+          description: >
+                        The bank Account resouce is created - all changes are saved. No further action is needed.  
+                        Resource is not returned on the response (you just sent all data right? ;-)). 
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-accountId':
+              schema:
+                type: string
+              description: The ID of the newly created bank Account resource. Mostly makes sense if ID was assigned server side. Of course if you generated the ID Client side then you get back the same here.
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '400':
+          description: "There are problems with the creation request. Further information is available in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given auth"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "This bank Account can not be created as some constraints are violated. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+  '/api/v1/accounts/rest/{accountId}':
+
+    get:
+      summary: To query a specific bank Account
+      tags:
+      - Bank Account management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/accountId'
+      responses:
+        '200':
+          description: >
+                        Returns the bank Account resouce.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Account'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The requested bank Account does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "This bank Account can not be created as some constraints are violated. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+                
+    put:
+      summary: To modify a specific bank Account
+      tags:
+      - Bank Account management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/accountId'
+      requestBody:
+        description: 'The bank Account resource to update.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '200':
+          description: bank Account was modified successfully.
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The bank Account you want to modify does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'                
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "Update failed as some constraints are violated - e.g. server has a newer version already due to concurrent update. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+
+  '/api/v1/accounts/operation/{accountId}/history':
+
+    post:
+      summary: To query transfer history of a specific bank Account.
+      description: >
+                  This is an RPC style endpoint. It means you need to send in the details / parameters of the operation in the body of the POST request.  
+      tags:
+      - Bank Account operations
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/accountId'
+      requestBody:
+        description: 'The Customer resource to create.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HistoryOperationRequest'
+      responses:
+        '200':
+          description: Returns an array of the matching transfers.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/HistoryOperationResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The bank Account does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+  '/api/v1/transfers/rest':
+
+    post:
+      summary: Creates a new Transfer
+      description: >
+                  You need to fill the mandatory info and send it in.
+      tags:
+      - Transfers management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      requestBody:
+        description: 'The Transfer resource to create.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transfer'
+      responses:
+        '201':
+          description: >
+                        The Transfer resouce is created - all changes to corresponding accounts are saved. No further action is needed.  
+                        Resource is not returned on the response (you just sent all data right? ;-)). 
+          content:
+            'application/json':
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-transferId':
+              schema:
+                type: string
+              description: The ID of the newly created Transfer resource. Mostly makes sense if ID was assigned server side. Of course if you generated the ID Client side then you get back the same here.
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '400':
+          description: "There are problems with the creation request. Further information is available in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given auth"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "This Transfer can not be created as some constraints are violated. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+
+  '/api/v1/transfers/rest/{transferId}':
+
+    get:
+      summary: To query a specific Transfer
+      tags:
+      - Transfers management REST API
+      security:
+      - basicAuth: []
+      parameters:
+      - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
+      - $ref: '#/components/parameters/transferId'
+      responses:
+        '200':
+          description: >
+                        Returns the Transfer resouce.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Transfer'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '401':
+          description: "Authentication failed - you provided invalid credentials or not at all"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '403':
+          description: "You do not have permission to do this with the given credentials"
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '404':
+          description: "The requested Transfer does not exist."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+        '409':
+          description: "This Transfer can not be created as some constraints are violated. You get more info in the response."
+          content:
+            application/json:
+              schema:
+                $ref: 'common-v1.yaml#/components/schemas/MessageResponse'
+          headers:
+            'x-trace-id':
+              $ref: 'common-v1.yaml#/components/headers/x-trace-id'
+            'x-transaction-id':
+              $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
+                
+
 components:
 
   securitySchemes:
@@ -357,6 +893,20 @@ components:
       in: path
       required: true
       description: 'ID of the Customer to query/modify/delete'
+      schema:
+        type: string
+    accountId:
+      name: accountId
+      in: path
+      required: true
+      description: 'ID of the bank Account to query/modify/delete'
+      schema:
+        type: string
+    transferId:
+      name: transferId
+      in: path
+      required: true
+      description: 'ID of Transfer between accounts to query'
       schema:
         type: string
 
@@ -387,6 +937,12 @@ components:
           type: string
           description: Optional. Stores the email address of the user. Ig given then this must follow email format.
           example: john.smith@domain.something
+
+    CustomerSearchResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/Customer"
+
 
     Account:
       description: Business object representing a Bank Account - belongs to a Customer.
@@ -422,16 +978,31 @@ components:
                       When was this account opened? UNIX Timestamp (num of seconds since Epoch)  
                         
                       You can not modify this value - so it is read-only.
+        status:
+          $ref: "#/components/schemas/AccountStatus"
         version:
           type: integer
           readOnly: true
           description: This is the resource version starts from 1 and automatically incremented by every successful change server side. When you do an update (PUT) you need to send it back! The server will check if it is matching with the resource version he has. If not then that means someone else already did an update in the meantime therefore your request can not be accepted - otherwise you may overwrite the changes someone did.
-        
+
+
+    AccountStatus:
+      type: string
+      enum: ["active", "disabled", "closed"]
+      description: Possible statuses of a bank Account.
+
+
+    AccountSearchResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/Account"
+
+
     Transfer:
       description: >
                   Business object representing a money transfer btw two accounts.  
                     
-                  FYI: a Transfer can not really be modified / deleted once created... It is an immutable fact. If an operator wants to "cancel" a certain transfer (s)he can create a reverse (opposite direction)
+                  FYI: Once created a Transfer can not be modified / deleted! It is an **immutable fact**. If an operator wants to "cancel" a certain transfer (s)he can create a reverse (opposite direction)
                   transfer.
       type: object
       required:
@@ -439,6 +1010,7 @@ components:
         - amount
         - sourceAccountId
         - destinationAccountId
+        - status
       properties:
         id:
           type: string
@@ -486,4 +1058,21 @@ components:
     TransferStatus:
       type: string
       enum: ["created", "settled", "failed"]
-      description: Possible statuses of a Transfer.
+      readOnly: true
+      description: Possible statuses of a Transfer. Please note that this is managed on server side so you can not modify/specify this
+
+    TransferDirection:
+      type: string
+      enum: ["all", "incoming", "outgoing"]
+      description: In which direction a certain Transfer accoured on a bank Account
+
+    HistoryOperationRequest:
+      type: object
+      properties:
+        direction:
+          $ref: "#/components/schemas/TransferDirection"
+
+    HistoryOperationResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/Transfer"   

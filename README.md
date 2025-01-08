@@ -117,6 +117,7 @@ I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-
     * Extracting certain things into libs (e.g. 'observability' package) making them slim, inter-service reusable shared code.
       Of course such step also would involve prior discussions and agreement in certain standards. Now this is not in the focus.
       So everything is implemented in-place within this only service.
+    * Employee passwords stored raw in DB - WHHHAAAAATTTT? :-) OK for now.
 
  
 ### 3rd party Libraries
@@ -163,6 +164,7 @@ If we want PROD ready (scrape ready) logs we need to format them into "1 line - 
  * REST - DELETE operations: having 404 response or not having it is a design question. Teams who favor full idempotency typically never return 404 on these requests. While Teams who favor full transparency
    and control do. I have chosen transparncy here.
  * The API is relatively extensive but did not implement everything - too much time investment for a code challenge maybe? :-)
+ * There is no DELETE on accounts. Not a coincidence...
 
 ### Handy tools
 
