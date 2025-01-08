@@ -17,11 +17,9 @@ from util import strings
 class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
     """
     This handler class is bound to FastAPI HTTP server to deal with Customer related endpoints.
-
-    After class is instantiated 
     """
 
-    BASE_URI = "/api/v1/customer"
+    BASE_URI = "/api/v1/customers"
     BASE_REST_URI = BASE_URI + "/rest"
 
     def __init__(self, customer_crud_contoller: CustomerCRUDController, service_config: ServiceConfig):

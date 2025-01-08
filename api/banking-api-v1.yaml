@@ -65,7 +65,7 @@ paths:
             'x-transaction-id':
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
         '400':
-          description: "There are problems with the creation request. Further information is available in the response."
+          description: "There are problems with the request. Further information is available in the response."
           content:
             application/json:
               schema:
@@ -136,7 +136,7 @@ paths:
             'x-transaction-id':
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
         '400':
-          description: "There are problems with the creation request. Further information is available in the response."
+          description: "There are problems with the request. Further information is available in the response."
           content:
             application/json:
               schema:
@@ -407,7 +407,7 @@ paths:
             'x-transaction-id':
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
         '400':
-          description: "There are problems with the creation request. Further information is available in the response."
+          description: "There are problems with the request. Further information is available in the response."
           content:
             application/json:
               schema:
@@ -476,7 +476,7 @@ paths:
             'x-transaction-id':
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
         '400':
-          description: "There are problems with the creation request. Further information is available in the response."
+          description: "There are problems with the request. Further information is available in the response."
           content:
             application/json:
               schema:
@@ -764,7 +764,7 @@ paths:
             'x-transaction-id':
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
         '400':
-          description: "There are problems with the creation request. Further information is available in the response."
+          description: "There are problems with the request. Further information is available in the response."
           content:
             application/json:
               schema:
@@ -947,8 +947,6 @@ components:
     Account:
       description: Business object representing a Bank Account - belongs to a Customer.
       type: object
-      required:
-        - customerId
       properties:
         id:
           type: string

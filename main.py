@@ -11,6 +11,7 @@ from src.persistence.sqlite.sqlite_account_crud_dao import SqliteAccountDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
+from src.api.http.account_handler_set_v1 import AccountHandlerSetV1
 from src.model.error import errors
 from fastapi import FastAPI
 
@@ -125,7 +126,7 @@ def _startService() -> None:
     # Let's create the service instance
     service = BankingService(app_type=AppType.FastAPI, config_file_path=cfg_file_path, log_config_file_path=log_cfg_file_path)
     
-    # bind the FastAPI handlers
+    # instantiate and bind the FastAPI handlers
     app: FastAPI = service.get_FastAPI_app()
     customer_handlers = CustomerHandlerSetV1(
         # dependency injection
@@ -133,6 +134,12 @@ def _startService() -> None:
         customer_crud_contoller=BankingService.customer_CRUD_controller
     )
     customer_handlers.attach_to_http_server(app)
+    account_handlers = AccountHandlerSetV1(
+        # dependency injection
+        service_config=BankingService.service_config,
+        account_crud_contoller=BankingService.account_CRUD_controller
+    )
+    account_handlers.attach_to_http_server(app)
 
     # finally, fire it up
     service.start_service_and_wait_for_exit()
