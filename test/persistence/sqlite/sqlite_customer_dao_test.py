@@ -10,7 +10,9 @@ import pytest
 
 sqliteConfig: SqliteConfig = SqliteConfig(**{
     "db_file": "local_workfolder/tmp/_sqlite_customerDAO_test.db",
-    "schema_files": {"customers": ["db_schemas/sqlite/schema_customers.sql"]}
+    "schema_files": {
+        "customers": ["db_schemas/sqlite/schema_customers.sql"]
+    }
 })
 
 @pytest.fixture(autouse=True)

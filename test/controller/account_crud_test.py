@@ -16,7 +16,8 @@ serviceConfig: ServiceConfig = ServiceConfig(**{
             "db_file": "local_workfolder/tmp/_sqlite_AccountCRUDController_test.db",
             "schema_files": {
                 "customers": ["db_schemas/sqlite/schema_customers.sql"],
-                "accounts": ["db_schemas/sqlite/schema_accounts.sql"]
+                "accounts": ["db_schemas/sqlite/schema_accounts.sql"],
+                "transfers": ["db_schemas/sqlite/schema_transfers.sql"]
             }
         }
     }

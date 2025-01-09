@@ -5,7 +5,7 @@ from fastapi import Request, FastAPI, status, Response
 from src.context.contexts import FastAPIHttpExecutionContext, ExecutionContext
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
-from src.model.api.generated.common_v1 import MessageResponse
+from src.model.api.generated.common_v1 import MessageResponse, BaseResponse
 from src.api.http.message_response_exception import MessageResponseException
 
 class BaseFastAPIHandlerSet(ABC):
@@ -36,7 +36,7 @@ class BaseFastAPIHandlerSet(ABC):
         # in this we can attach exception handlers etc etc
         if not self._attached_once:
             self._LOG.debug("attaching one-time things to FastAPI app...")
-            app.add_exception_handler(MessageResponseException, self.messageresponseexception_handler)
+            app.add_exception_handler(MessageResponseException, self.messageresponse_exception_handler)
             self._attached_once = True
             self._LOG.debug("one-time things done!")
         
@@ -53,7 +53,7 @@ class BaseFastAPIHandlerSet(ABC):
 
     # This handler is registered to deal with MessageResponseException - which we convert into MessageResponse
     # This helps us to fulfill our contract
-    def messageresponseexception_handler(self, request: Request, exc: MessageResponseException):
+    def messageresponse_exception_handler(self, request: Request, exc: MessageResponseException):
         labels = exc.cntx.get_minimmal_info_for_log() if exc.cntx != None else dict()
         # let's log the captured exception!
         self._LOG.error("request failed! error was: %s\ntraceback: %s", exc, exc.__traceback__, **labels)
@@ -117,14 +117,21 @@ class BaseFastAPIHandlerSet(ABC):
     
     # Subclasses can use this method get a prepared skeleton of MessageResponse
     def _get_prepared_MessageResponse(self, cntx: ExecutionContext = None) -> MessageResponse:
+        base_resp = self._get_prepared_BaseResponse(cntx = cntx)
+        msgResp = MessageResponse(requestReceivedAt = base_resp.requestReceivedAt, processingTookMillis = base_resp.processingTookMillis)
+        return msgResp
+
+    # Subclasses can use this method get a prepared skeleton of BaseResponse
+    def _get_prepared_BaseResponse(self, cntx: ExecutionContext = None) -> BaseResponse:
         receivedAt = -1
         tookMillis = None
         if cntx != None:
             receivedAt = int(cntx.created_ts)
             tookMillis = cntx.get_ellapsed_millis()
-        msgResp = MessageResponse(requestReceivedAt=receivedAt, processingTookMillis=tookMillis)
+        msgResp = BaseResponse(requestReceivedAt = receivedAt, processingTookMillis = tookMillis)
         return msgResp
-    
+
+
     # Subclass can obtain clienbt IP address
     def _get_client_IP(self, http_request: Request) -> str:
         forwardedFor = http_request.headers.get("x-forwarded-for")

@@ -11,7 +11,9 @@ import pytest
 sqliteConfig: SqliteConfig = SqliteConfig(**{
     "db_file": "local_workfolder/tmp/_sqlite_accountsDAO_test.db",
     "schema_files": {
-        "accounts": ["db_schemas/sqlite/schema_accounts.sql"]
+        "accounts": ["db_schemas/sqlite/schema_accounts.sql"],
+                "transfers": ["db_schemas/sqlite/schema_transfers.sql"]
+
     }
 })
 

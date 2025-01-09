@@ -662,7 +662,7 @@ paths:
               $ref: 'common-v1.yaml#/components/headers/x-transaction-id'
 
 
-  '/api/v1/accounts/operation/{accountId}/history':
+  '/api/v1/accounts/operation/history':
 
     post:
       summary: To query transfer history of a specific bank Account.
@@ -674,7 +674,6 @@ paths:
       - basicAuth: []
       parameters:
       - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
-      - $ref: '#/components/parameters/accountId'
       requestBody:
         description: 'The operation parametrization'
         content:
@@ -1067,11 +1066,27 @@ components:
       type: object
       required:
         - direction
+        - accountId
       properties:
+        accountId:
+          description: Which account's history do you want to query?
+          type: string
         direction:
           $ref: "#/components/schemas/TransferDirection"
 
     HistoryOperationResponse:
-      type: array
-      items:
-        $ref: "#/components/schemas/Transfer"   
+      description: The successful result of an Account transfer histroy request. Obviously, if 'problems' array not empty then they can be just Warnings...
+      allOf:
+      - $ref: 'common-v1.yaml#/components/schemas/BaseResponse'
+      - type: object
+        properties:
+          requestedAccountId:
+            type: string
+            description: ID of the Account who's history was requested.
+          requestedDirection:
+            $ref: "#/components/schemas/TransferDirection"
+          transfers:
+            type: array
+            items:
+              $ref: "#/components/schemas/Transfer"
+            description: The mathing transfers in time descending order

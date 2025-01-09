@@ -371,7 +371,7 @@ def test_SqliteAccountDAO_unhappypath_create_notEnoughMoney():
 
     transferToSendIn: Transfer = Transfer(
         id = "transfer-1-id",
-        amount = account1.balance + 0.0001,
+        amount = account1.balance + 0.1,
         sourceAccountId = account1.id,
         destinationAccountId = account2.id,
     )

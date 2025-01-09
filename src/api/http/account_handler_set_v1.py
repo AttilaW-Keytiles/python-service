@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, status, FastAPI
 from fastapi.responses import Response
-from src.model.api.generated.banking_api_v1 import Account
+from src.model.api.generated.banking_api_v1 import Account, HistoryOperationRequest, HistoryOperationResponse, Transfer
 from src.model.api.generated.common_v1 import MessageResponse, Problem, ProblemPlaceEnum, CommonErrorCodes, Severity
 from src.observability.logging import LoggerFactory, Logger
 from src.controller.account_crud import AccountCRUDController
@@ -32,7 +32,9 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_operation_controller', paramValueToCheck=account_operation_controller, acceptedTypes=(AccountOperationsController), loggerToUse=self._LOG)
 
         self._account_crud_contoller = account_crud_contoller
-        """Our controller - HTTP operations are mapped into method invocations on it"""
+        """Our CRUD (Rest) controller - HTTP operations are mapped into method invocations on it"""
+        self._account_operation_controller = account_operation_controller
+        """Our Operation (RPC) controller - HTTP operations are mapped into method invocations on it"""
 
 
     def _do_attach_to_http_server(self, app: FastAPI) -> None:
@@ -43,6 +45,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
         router.add_api_route(AccountHandlerSetV1.BASE_REST_URI + "/{accountId}", self.get_account_proxy, methods=["GET"])
         router.add_api_route(AccountHandlerSetV1.BASE_REST_URI + "/{accountId}", self.update_account_proxy, methods=["PUT"])
         router.add_api_route(AccountHandlerSetV1.BASE_REST_URI, self.create_account_proxy, methods=["POST"])
+        router.add_api_route(AccountHandlerSetV1.BASE_OPERATIONS_URI + "/history", self.get_account_transfer_history_proxy, methods=["POST"])
         app.include_router(router)
 
 
@@ -151,3 +154,29 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
                 detail = "Account does not exist",
                 problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.urlParam, placeName="{accountId}", errorCodes=[CommonErrorCodes.requestParameter_invalid], message="invalid accountId"))
 
+
+    # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Account - just need to declare it as param. Convenient!
+    def get_account_transfer_history_proxy(self, request: Request, req_obj: HistoryOperationRequest):
+        resp = self._execute_handler_method_wrapper(request=request, method=self.get_account_transfer_history, bodyObject=req_obj)
+        return resp
+
+
+    def get_account_transfer_history(self, cntx: FastAPIHttpExecutionContext, bodyObject: HistoryOperationRequest):
+        account_id: str = bodyObject.accountId
+        account = self._account_crud_contoller.get(account_id=account_id, cntx=cntx)
+        if account == None:
+            raise self._get_account404_error(cntx=cntx)
+        
+        history: list[Transfer] = self._account_operation_controller.get_account_transfers(account_id = account_id, direction=bodyObject.direction)
+
+        # we request this and will copy over values
+        base_resp = self._get_prepared_BaseResponse(cntx = cntx)
+        resp_obj = HistoryOperationResponse(
+            requestReceivedAt = base_resp.requestReceivedAt,
+            processingTookMillis = base_resp.processingTookMillis,
+            requestedAccountId = account_id,
+            requestedDirection = bodyObject.direction,
+            transfers = history
+        )
+        resp = self._get_prepared_http_response(status_code = status.HTTP_200_OK, bodyModel = resp_obj, cntx = cntx)
+        return resp
