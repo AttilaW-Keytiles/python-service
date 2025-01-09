@@ -1,4 +1,5 @@
 from fastapi import status, HTTPException
+from src.observability.logging import Logger, LoggerFactory
 from src.context.contexts import FastAPIHttpExecutionContext
 from src.model.api.generated.common_v1 import MessageResponse, Problem, ProblemPlaceEnum, CommonErrorCodes, Severity
 from src.model.error import errors
@@ -21,6 +22,8 @@ class MessageResponseException(HTTPException):
     """
 
     DETAILMSG_GENERIC_OP_FAILURE = "Operation failed - there is at least one error! See /problems entry for more details!"
+
+    _LOG: Logger = LoggerFactory.getLogger("service.api.http.MessageResponseException")
 
     @staticmethod
     def from_exception(exc: Exception, cntx: FastAPIHttpExecutionContext = None):
@@ -70,6 +73,28 @@ class MessageResponseException(HTTPException):
             )
             return handlerExc
 
+        if isinstance(exc, errors.AuthenticationError):
+            # should result in 401 by default
+            handlerExc = MessageResponseException(
+                cntx = cntx,
+                status_code = status.HTTP_401_UNAUTHORIZED,
+                # the message of these type exceptions should be safe to be returned for users
+                detail = exc.message + msgAddition,
+                problems = MessageResponseException._convert_exception_errorcodes_to_problems(error_codes = exc.error_codes, originalExc = exc)
+            )
+            return handlerExc
+
+        if isinstance(exc, errors.AuthorizationError):
+            # should result in 403 by default
+            handlerExc = MessageResponseException(
+                cntx = cntx,
+                status_code = status.HTTP_403_FORBIDDEN,
+                # the message of these type exceptions should be safe to be returned for users
+                detail = exc.message + msgAddition,
+                problems = MessageResponseException._convert_exception_errorcodes_to_problems(error_codes = exc.error_codes, originalExc = exc)
+            )
+            return handlerExc
+
 
         # Careful! We can not anyhow expose any sensitive detail of the exception back to the response!
         # That info belongs to logs... so here is a nice default - just in case
@@ -91,7 +116,7 @@ class MessageResponseException(HTTPException):
     
     
     @staticmethod
-    def _convert_exception_errorcodes_to_problems(error_codes: set[str], originalExc: errors.ServiceRuntimeError) -> list[Problem]:
+    def _convert_exception_errorcodes_to_problems(error_codes: set[str], originalExc: errors.ServiceRuntimeError, cntx: FastAPIHttpExecutionContext = None) -> list[Problem]:
         problems: list[Problem] = list()
         unrecognized_codes: list[str] = list()
         for error_code in error_codes:
@@ -134,10 +159,23 @@ class MessageResponseException(HTTPException):
                     if isinstance(originalExc, errors.ValidationError) and originalExc.place_name != None:
                         problem.placeName = originalExc.place_name
                     problems.append(problem)
+                case errors.AuthenticationError.ERROR_MISSING:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.authentication_missing], message = "Authentication required but it was not present. Please provide!")
+                    problems.append(problem)
+                case errors.AuthenticationError.ERROR_NOT_SUPPORTED:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.authentication_methodNotSupported], message = "The Authentication data was there but it is using a method we do not support. Use a supported one!")
+                    problems.append(problem)
+                case errors.AuthenticationError.ERROR_FAILED:
+                    problem: Problem = Problem(severity = Severity.error, errorCodes=[CommonErrorCodes.authentication_invalid], message = "The Authentication data was there but we failed to use that. More info in logs!")
+                    problems.append(problem)
                 case _:
                     unrecognized_codes.append(error_code)
         if len(unrecognized_codes) > 0:
-            # let's add all others just simply - here we can not fulfill our contract promise but fine, do not swallow what we have
+            # let's add all others just simply! Normally if code gets there Maintainers have work! ;-) This section should be empty after all...
+            # so make a log at least so we have the chance to know
+            labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
+            MessageResponseException._LOG.warning("during conversion unrecognized_codes are captured - we have work to do! codes: %s", unrecognized_codes, **labels)
+
             problems.append(
                 Problem(severity = Severity.error, delegatedErrorCodes=unrecognized_codes, message = "These error codes are not part of the API contract but was provided by the application layer")
             )

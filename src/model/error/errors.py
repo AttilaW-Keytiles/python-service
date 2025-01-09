@@ -100,6 +100,30 @@ class ResourceNotFoundError(ServiceRuntimeError):
     Controller and Persistence (DAO) layers can throw this error to describe they could not find a record/resource which was requested.
 
     E.g. someone tries to query a business object belongs to the ID but it does not exist.
+    """
+
+class AuthenticationError(ServiceRuntimeError):
+    """
+    Normally Controller / Api layers can throw this error to describe they could not authenticate the request.
+
+    E.g. someone tries to query a protected business object requires Auth.
 
     This class provides a few pre-populated error codes - for typical situations
+    """
+
+    ERROR_MISSING = "auth_missing"
+    """Use this if you expected to have an authentication at certain point but it is not there"""
+    ERROR_NOT_SUPPORTED = "auth_method_not_supported"
+    """Use this if however auth info was there but it is using a method which you do not support"""
+    ERROR_FAILED = "auth_failed"
+    """Use this if however auth info was there auth process was not successful"""
+
+
+class AuthorizationError(ServiceRuntimeError):
+    """
+    Normally Controller layers should throw this error to describe whoever is executing the business transaction (Authentication was there already!) is somehow not authorized for this.
+
+    E.g. someone tries to query a business object belongs but he has no permission for this.
+
+    **PLEASE NOTE!** This error is NOT for situations Auth is missing entirely! We do have `AuthenticationError` for that purpose! This is just for permission problems! It's different.
     """
