@@ -61,6 +61,17 @@ It is easy, we have one 'root' user configured - see [initial_data_users.sql](db
 
 You also find an exported [Postman](https://www.postman.com/downloads/) collection here: [Banking API.postman_collection.json](api/Banking%20API.postman_collection.json). Use it if you wish!
 
+## Configuring the service
+
+You find the config of the service here: [local_workfolder/conf/config.yaml](local_workfolder/conf/config.yaml). Feel free to take a look!
+
+And you can also configure the logging which is here [local_workfolder/conf/log-config.yaml](local_workfolder/conf/log-config.yaml).
+
+By default logging is configured the way it is logging to console, plain text.  
+But it also logs into files in "local_workfolder/logs" into two files - one plain test "service.log" and another JSON JSON file and format into "service.log.json" files.
+
+We are using "structured logging" - but you will read about it later too.
+
 ## Debug the code
 
 To debug the code:
