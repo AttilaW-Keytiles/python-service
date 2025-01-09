@@ -6,6 +6,8 @@ from src.util import dependency_validator, preconditions, strings, ids
 from src.context.contexts import ExecutionContext
 from src.model.config.models import ServiceConfig
 from src.model.error import errors
+from src.controller.authorization import Authorization
+from src.model.auth import roles
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import time
@@ -77,6 +79,7 @@ class AccountCRUDController:
         id = id + ids.generate_random_word(4, valid_chars)
         return id
 
+    
 
     def create(self, account_data: Account, cntx: ExecutionContext = None) -> str:
         """
@@ -84,7 +87,12 @@ class AccountCRUDController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("creating Account: %s", account_data, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
+
         preconditions.check_argument(account_data != None and isinstance(account_data, Account), "'account_data' parameter must be provided and it must be Account type")
+
         # we should not modify the passed in object - so take a copy
         account_data = deepcopy(account_data)
 
@@ -157,6 +165,9 @@ class AccountCRUDController:
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("retrieving Account id=%s", account_id, **labels)
 
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
+
         preconditions.check_argument(strings.is_not_blank(account_id), "'account_id' can not be blank")
 
         account: Account = self._account_DAO.read(account_id=account_id, cntx=cntx)
@@ -173,6 +184,9 @@ class AccountCRUDController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("updating Account: %s", account_data, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
 
         preconditions.check_argument(account_data != None and isinstance(account_data, Account), "'account_data' parameter must be provided and it must be Account type")
         # we should not modify the passed in object - so take a copy

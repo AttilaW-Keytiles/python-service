@@ -10,6 +10,8 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 import time
 from decimal import Decimal, ROUND_HALF_UP
+from src.controller.authorization import Authorization
+from src.model.auth import roles
 
 
 class ITransferCRUD_DAO(ABC):
@@ -86,6 +88,10 @@ class TransferCRUDController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("creating Transfer: %s", transfer_data, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
+
         preconditions.check_argument(transfer_data != None and isinstance(transfer_data, Transfer), "'transfer_data' parameter must be provided and it must be Transfer type")
         # we should not modify the passed in object - so take a copy
         transfer_data = deepcopy(transfer_data)
@@ -236,6 +242,9 @@ class TransferCRUDController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("retrieving Transfer id=%s", transfer_id, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
 
         preconditions.check_argument(strings.is_not_blank(transfer_id), "'transfer_id' can not be blank")
 

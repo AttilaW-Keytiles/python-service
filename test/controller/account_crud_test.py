@@ -5,6 +5,9 @@ from persistence.sqlite.sqlite_account_dao import SqliteAccountDAO
 from src.controller.customer_crud import ICustomerCRUD_DAO
 from src.controller.account_crud import AccountCRUDController
 from src.model.api.generated.banking_api_v1 import Customer, Account, AccountStatus
+from src.context.contexts import ExecutionContext
+from src.model.auth.auth_info import AuthInfo
+from src.model.auth import roles
 from src.model.error import errors
 import os
 from copy import deepcopy
@@ -40,6 +43,15 @@ def createController() -> AccountCRUDController:
     controller: AccountCRUDController = AccountCRUDController(config=serviceConfig, account_DAO=accountDAO, customer_DAO=customerDAO)
     return controller
 
+def getAuthenticatedContext() -> ExecutionContext:
+    auth_info = AuthInfo(
+        user_id="fake-user-id",
+        user_name="fake_guy",
+        roles = roles.AUTH_ROLES.keys
+    )
+    cntx = ExecutionContext(auth_info=auth_info)
+    return cntx
+
 
 def test_SqliteAccountDAO_happypath_opSequence():
     """This test executes a sequence of CRUD operations - and check the state. Basically it is testing through all methods.
@@ -48,6 +60,7 @@ def test_SqliteAccountDAO_happypath_opSequence():
     # ---- GIVEN
 
     controller: AccountCRUDController = createController()
+    cntx = getAuthenticatedContext()
 
     # we need a valid customers
     customer1: Customer = Customer(
@@ -87,7 +100,7 @@ def test_SqliteAccountDAO_happypath_opSequence():
     # ---- WHEN
     # let's query into the empty DB
 
-    actualAccountObj: Account = controller.get(account_id = "account_id_1")
+    actualAccountObj: Account = controller.get(account_id = "account_id_1", cntx=cntx)
 
     # ---- THEN
     # we have no result
@@ -97,13 +110,13 @@ def test_SqliteAccountDAO_happypath_opSequence():
     # ---- WHEN
     # now let's create account1 and account2
 
-    returned_account1_id = controller.create(account_data = account1)
-    returned_account2_id = controller.create(account_data = account2)
+    returned_account1_id = controller.create(account_data = account1, cntx=cntx)
+    returned_account2_id = controller.create(account_data = account2, cntx=cntx)
 
     # ---- THEN
     
     # and we should see the guys now
-    actualAccountObj: Account = controller.get(account_id = returned_account1_id)
+    actualAccountObj: Account = controller.get(account_id = returned_account1_id, cntx=cntx)
     assert actualAccountObj is not None
     # with fields like
     assert returned_account1_id == actualAccountObj.id
@@ -119,11 +132,11 @@ def test_SqliteAccountDAO_happypath_opSequence():
     actualAccountObj.status = AccountStatus.disabled
     actualAccountObj.balance = -84.9
     actualAccountObj.customerId = customer2.id
-    controller.update(account_data = actualAccountObj)
+    controller.update(account_data = actualAccountObj, cntx=cntx)
 
     # ---- THEN
 
-    updatedActualAccountObj: Account = controller.get(account_id = actualAccountObj.id)
+    updatedActualAccountObj: Account = controller.get(account_id = actualAccountObj.id, cntx=cntx)
     assert updatedActualAccountObj is not None
     # with fields like
     assert actualAccountObj.id == updatedActualAccountObj.id
@@ -136,7 +149,7 @@ def test_SqliteAccountDAO_happypath_opSequence():
 
 
 
-def _unhappypath_create_helper(accountToSendIn: any) -> dict[str, any]:
+def _unhappypath_create_helper(accountToSendIn: any, cntx: ExecutionContext) -> dict[str, any]:
     """
     Helper method - to eliminate lots of boilerplate - related to create() stressing
     """
@@ -151,7 +164,7 @@ def _unhappypath_create_helper(accountToSendIn: any) -> dict[str, any]:
     retValue = None
     errThrown = None
     try:
-        retValue = controller.create(accountToSendIn)
+        retValue = controller.create(accountToSendIn, cntx=cntx)
     except Exception as e:
         errThrown = e
 
@@ -169,6 +182,7 @@ def test_SqliteAccountDAO_unhappypath_create_idProvided():
     # ---- GIVEN
 
     controller: AccountCRUDController = createController()
+    cntx = getAuthenticatedContext()
 
     # we need a valid customer
     customer1: Customer = Customer(
@@ -186,7 +200,7 @@ def test_SqliteAccountDAO_unhappypath_create_idProvided():
 
     # ---- WHEN
 
-    results: dict[str, any] = _unhappypath_create_helper(accountToSendIn)
+    results: dict[str, any] = _unhappypath_create_helper(accountToSendIn, cntx=cntx)
     errThrown = results.get('errThrown')
     retValue = results.get('retValue')
 

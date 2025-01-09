@@ -7,6 +7,9 @@ from src.model.error import errors
 import os
 from copy import deepcopy
 import pytest
+from src.context.contexts import ExecutionContext
+from src.model.auth.auth_info import AuthInfo
+from src.model.auth import roles
 
 serviceConfig: ServiceConfig = ServiceConfig(**{
     "persistence": {
@@ -35,6 +38,15 @@ def createController() -> CustomerCRUDController:
     controller: CustomerCRUDController = CustomerCRUDController(config=serviceConfig, customer_DAO=dao)
     return controller
 
+def getAuthenticatedContext() -> ExecutionContext:
+    auth_info = AuthInfo(
+        user_id="fake-user-id",
+        user_name="fake_guy",
+        roles = roles.AUTH_ROLES.keys
+    )
+    cntx = ExecutionContext(auth_info=auth_info)
+    return cntx
+
 
 def test_SqliteCustomerDAO_happypath_opSequence():
     """This test executes a sequence of CRUD operations - and check the state. Basically it is testing through all methods.
@@ -43,6 +55,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     # ---- GIVEN
 
     controller: CustomerCRUDController = createController()
+    cntx = getAuthenticatedContext()
 
     customer_id1: str = "test-customer-1"
 
@@ -64,7 +77,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     # ---- WHEN
     # let's query into the empty DB
 
-    actualCustomerObj: Customer = controller.get(customer_id = customer_id1)
+    actualCustomerObj: Customer = controller.get(customer_id = customer_id1, cntx=cntx)
 
     # ---- THEN
     # we have no result
@@ -74,7 +87,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     # ---- WHEN
     # now let's create customer1
 
-    returned_id = controller.create(customer_data = customer1)
+    returned_id = controller.create(customer_data = customer1, cntx=cntx)
 
     # ---- THEN
     
@@ -82,7 +95,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     assert customer_id1 == returned_id
 
     # and we should see the guy now
-    actualCustomerObj: Customer = controller.get(customer_id = customer_id1)
+    actualCustomerObj: Customer = controller.get(customer_id = customer_id1, cntx=cntx)
     assert actualCustomerObj is not None
     # version should be set to 1
     # apart from that all other attributes should match with the original record
@@ -93,7 +106,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     # ---- WHEN
     # now let's test auto-id assigment
     # let's create a customer who does not have assigned id (it also does not have version by the way)
-    returned_id = controller.create(customer_data = customer2)
+    returned_id = controller.create(customer_data = customer2, cntx=cntx)
 
     # ---- THEN
     
@@ -101,7 +114,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
     assert returned_id is not None
 
     # and we should see the guy now - if query back
-    actualCustomerObj: Customer = controller.get(customer_id = returned_id)
+    actualCustomerObj: Customer = controller.get(customer_id = returned_id, cntx=cntx)
     assert actualCustomerObj is not None
     # version should be set to 1
     # apart from that all other attributes should match with the original record
@@ -117,7 +130,7 @@ def test_SqliteCustomerDAO_happypath_opSequence():
 
 
 
-def _unhappypath_create_helper(customerToSendIn: any) -> dict[str, any]:
+def _unhappypath_create_helper(customerToSendIn: any, cntx: ExecutionContext) -> dict[str, any]:
     """
     Helper method - to eliminate lots of boilerplate - related to create() stressing
     """
@@ -132,7 +145,7 @@ def _unhappypath_create_helper(customerToSendIn: any) -> dict[str, any]:
     retValue = None
     errThrown = None
     try:
-        retValue = controller.create(customerToSendIn)
+        retValue = controller.create(customerToSendIn, cntx=cntx)
     except Exception as e:
         errThrown = e
 
@@ -150,6 +163,8 @@ def test_SqliteCustomerDAO_unhappypath_create_duplicatedIds():
 
     # ---- GIVEN
 
+    cntx = getAuthenticatedContext()
+
     customerToSendIn: Customer = Customer(
         id = "customer1_id",
         name = "customer1_name",
@@ -158,7 +173,7 @@ def test_SqliteCustomerDAO_unhappypath_create_duplicatedIds():
 
     # ---- WHEN
 
-    results: dict[str, any] = _unhappypath_create_helper(customerToSendIn)
+    results: dict[str, any] = _unhappypath_create_helper(customerToSendIn, cntx=cntx)
     errThrown = results.get('errThrown')
     retValue = results.get('retValue')
 
@@ -171,7 +186,7 @@ def test_SqliteCustomerDAO_unhappypath_create_duplicatedIds():
     # ---- WHEN
     # ... but if we try to recreate same again...
 
-    results: dict[str, any] = _unhappypath_create_helper(customerToSendIn)
+    results: dict[str, any] = _unhappypath_create_helper(customerToSendIn, cntx=cntx)
     errThrown = results.get('errThrown')
     retValue = results.get('retValue')
 

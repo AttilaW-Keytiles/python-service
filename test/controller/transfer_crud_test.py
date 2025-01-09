@@ -9,6 +9,9 @@ from src.model.error import errors
 import os
 from copy import deepcopy
 import pytest
+from src.context.contexts import ExecutionContext
+from src.model.auth.auth_info import AuthInfo
+from src.model.auth import roles
 
 serviceConfig: ServiceConfig = ServiceConfig(**{
     "persistence": {
@@ -39,6 +42,15 @@ def createController() -> TransferCRUDController:
     transferDAO: SqliteTransferDAO = SqliteTransferDAO(config=serviceConfig.persistence_config.sqlite_config, db=db)
     controller: TransferCRUDController = TransferCRUDController(config=serviceConfig, account_DAO=accountDAO, transfer_DAO=transferDAO)
     return controller
+
+def getAuthenticatedContext() -> ExecutionContext:
+    auth_info = AuthInfo(
+        user_id="fake-user-id",
+        user_name="fake_guy",
+        roles = roles.AUTH_ROLES.keys
+    )
+    cntx = ExecutionContext(auth_info=auth_info)
+    return cntx
 
 
 # we need a few accounts
@@ -80,12 +92,13 @@ def test_SqliteAccountDAO_happypath_opSequence():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     # ---- WHEN
     # let's query into the empty DB
 
-    actualTransferObj: Transfer = controller.get(transfer_id = "transfer-1-id")
+    actualTransferObj: Transfer = controller.get(transfer_id = "transfer-1-id", cntx=cntx)
 
     # ---- THEN
     # we have no result
@@ -101,12 +114,12 @@ def test_SqliteAccountDAO_happypath_opSequence():
         sourceAccountId = account1.id,
         destinationAccountId = account2.id,
     )
-    controller.create(transfer_data = transfer1)
+    controller.create(transfer_data = transfer1, cntx=cntx)
 
     # ---- THEN
     
     # we should see the Transfer - as it should have been succeeded
-    actualTransferObj: Transfer = controller.get(transfer_id = transfer1.id)
+    actualTransferObj: Transfer = controller.get(transfer_id = transfer1.id, cntx=cntx)
     assert actualTransferObj is not None
     # with fields like
     assert transfer1.id == actualTransferObj.id
@@ -123,7 +136,7 @@ def test_SqliteAccountDAO_happypath_opSequence():
     assert 28.6 == actualAccount2Obj.balance
 
 
-def _unhappypath_create_helper(transferToSendIn: any) -> Exception:
+def _unhappypath_create_helper(transferToSendIn: any, cntx: ExecutionContext) -> Exception:
     """
     Helper method - to eliminate lots of boilerplate - related to create() stressing
     """
@@ -137,7 +150,7 @@ def _unhappypath_create_helper(transferToSendIn: any) -> Exception:
 
     errThrown = None
     try:
-        controller.create(transferToSendIn)
+        controller.create(transferToSendIn, cntx=cntx)
     except Exception as e:
         errThrown = e
 
@@ -152,6 +165,7 @@ def test_SqliteAccountDAO_unhappypath_create_emptyIdProvided():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -163,7 +177,7 @@ def test_SqliteAccountDAO_unhappypath_create_emptyIdProvided():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -183,6 +197,7 @@ def test_SqliteAccountDAO_unhappypath_create_invalidSrcAccountProvided():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -194,7 +209,7 @@ def test_SqliteAccountDAO_unhappypath_create_invalidSrcAccountProvided():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -214,6 +229,7 @@ def test_SqliteAccountDAO_unhappypath_create_invalidDstAccountProvided():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -225,7 +241,7 @@ def test_SqliteAccountDAO_unhappypath_create_invalidDstAccountProvided():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -245,6 +261,7 @@ def test_SqliteAccountDAO_unhappypath_create_sameSrcAndDstAccountProvided():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -256,7 +273,7 @@ def test_SqliteAccountDAO_unhappypath_create_sameSrcAndDstAccountProvided():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -276,6 +293,7 @@ def test_SqliteAccountDAO_unhappypath_create_invalid0Amount():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -287,7 +305,7 @@ def test_SqliteAccountDAO_unhappypath_create_invalid0Amount():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -307,6 +325,7 @@ def test_SqliteAccountDAO_unhappypath_create_disabledSrcAccountProvided():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -318,7 +337,7 @@ def test_SqliteAccountDAO_unhappypath_create_disabledSrcAccountProvided():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -337,6 +356,7 @@ def test_SqliteAccountDAO_unhappypath_create_disabledDstAccountProvided():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -348,7 +368,7 @@ def test_SqliteAccountDAO_unhappypath_create_disabledDstAccountProvided():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...
@@ -367,6 +387,7 @@ def test_SqliteAccountDAO_unhappypath_create_notEnoughMoney():
     # ---- GIVEN
 
     controller: TransferCRUDController = createController()
+    cntx = getAuthenticatedContext()
     someTestAccountsExist(controller = controller)
 
     transferToSendIn: Transfer = Transfer(
@@ -378,7 +399,7 @@ def test_SqliteAccountDAO_unhappypath_create_notEnoughMoney():
 
     # ---- WHEN
 
-    errThrown = _unhappypath_create_helper(transferToSendIn)
+    errThrown = _unhappypath_create_helper(transferToSendIn, cntx=cntx)
 
     # ---- THEN
     # now we see problems...

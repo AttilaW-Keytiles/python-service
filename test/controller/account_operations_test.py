@@ -9,6 +9,9 @@ from src.model.error import errors
 import os
 from copy import deepcopy
 import pytest
+from src.context.contexts import ExecutionContext
+from src.model.auth.auth_info import AuthInfo
+from src.model.auth import roles
 
 serviceConfig: ServiceConfig = ServiceConfig(**{
     "persistence": {
@@ -45,6 +48,14 @@ def createController() -> AccountOperationsController:
     controller: AccountOperationsController = AccountOperationsController(config=serviceConfig, account_ops_DAO=accountDAO, account_crud_DAO=accountDAO, customer_crud_DAO=customerDAO)
     return controller
 
+def getAuthenticatedContext() -> ExecutionContext:
+    auth_info = AuthInfo(
+        user_id="fake-user-id",
+        user_name="fake_guy",
+        roles = roles.AUTH_ROLES.keys
+    )
+    cntx = ExecutionContext(auth_info=auth_info)
+    return cntx
 
 # we need a few accounts
 account1: Account = Account(
@@ -94,6 +105,7 @@ def test_SqliteAccountDAO_happypath_getAccountTransfers():
 
     transferDAO: SqliteTransferDAO = createTransferDAO()
     controller: AccountOperationsController = createController()
+    cntx = getAuthenticatedContext()
     someTestDataExist(controller=controller)
 
     # NOTE! createdAt times are in this order!!
@@ -134,7 +146,7 @@ def test_SqliteAccountDAO_happypath_getAccountTransfers():
     # ---- WHEN
     # first query ALL stuff happened on acc1
 
-    transfers: list[Transfer] = controller.get_account_transfers(account_id = account1.id, direction = TransferDirection.all)
+    transfers: list[Transfer] = controller.get_account_transfers(account_id = account1.id, direction = TransferDirection.all, cntx=cntx)
 
     # ---- THEN
 
@@ -145,7 +157,7 @@ def test_SqliteAccountDAO_happypath_getAccountTransfers():
     # ---- WHEN
     # now outbound only happened on acc1
 
-    transfers: list[Transfer] = controller.get_account_transfers(account_id = account1.id, direction = TransferDirection.outgoing)
+    transfers: list[Transfer] = controller.get_account_transfers(account_id = account1.id, direction = TransferDirection.outgoing, cntx=cntx)
 
     # ---- THEN
 
@@ -156,7 +168,7 @@ def test_SqliteAccountDAO_happypath_getAccountTransfers():
     # ---- WHEN
     # now inbound only happened on acc1
 
-    transfers: list[Transfer] = controller.get_account_transfers(account_id = account1.id, direction = TransferDirection.incoming)
+    transfers: list[Transfer] = controller.get_account_transfers(account_id = account1.id, direction = TransferDirection.incoming, cntx=cntx)
 
     # ---- THEN
 
@@ -168,7 +180,7 @@ def test_SqliteAccountDAO_happypath_getAccountTransfers():
     # finally, some empty list returning...
     # we have no outbound Transfers from acc2
 
-    transfers: list[Transfer] = controller.get_account_transfers(account_id = account2.id, direction = TransferDirection.outgoing)
+    transfers: list[Transfer] = controller.get_account_transfers(account_id = account2.id, direction = TransferDirection.outgoing, cntx=cntx)
 
     # ---- THEN
 
@@ -176,7 +188,7 @@ def test_SqliteAccountDAO_happypath_getAccountTransfers():
     assert expectedList == transfers
 
 
-def _unhappypath_getAccountTransfers_helper(account_id: any) -> dict[str, any]:
+def _unhappypath_getAccountTransfers_helper(account_id: any, cntx: ExecutionContext) -> dict[str, any]:
     """
     Helper method - to eliminate lots of boilerplate - related to create() stressing
     """
@@ -191,7 +203,7 @@ def _unhappypath_getAccountTransfers_helper(account_id: any) -> dict[str, any]:
     retValue = None
     errThrown = None
     try:
-        retValue = controller.get_account_transfers(account_id)
+        retValue = controller.get_account_transfers(account_id, cntx=cntx)
     except Exception as e:
         errThrown = e
 
@@ -209,11 +221,12 @@ def test_SqliteAccountDAO_unhappypath_getAccountTransfersOnNonExistingAccount():
     # ---- GIVEN
 
     controller: AccountOperationsController = createController()
+    cntx = getAuthenticatedContext()
 
     # ---- WHEN
 
     acc_id = "acc-not-exist"
-    results: dict[str, any] = _unhappypath_getAccountTransfers_helper(account_id=acc_id)
+    results: dict[str, any] = _unhappypath_getAccountTransfers_helper(account_id=acc_id, cntx=cntx)
     errThrown = results.get('errThrown')
     retValue = results.get('retValue')
 
@@ -234,6 +247,7 @@ def test_SqliteAccountDAO_happypath_getCustomerAccounts():
     # ---- GIVEN
 
     controller: AccountOperationsController = createController()
+    cntx = getAuthenticatedContext()
     someTestDataExist(controller=controller)
 
     # we need the customer to make test happy
@@ -252,7 +266,7 @@ def test_SqliteAccountDAO_happypath_getCustomerAccounts():
 
     # ---- WHEN
 
-    accounts: list[Account] = controller.get_customer_accounts(customer_id=customer1.id)
+    accounts: list[Account] = controller.get_customer_accounts(customer_id=customer1.id, cntx=cntx)
 
     # ---- THEN
 
@@ -262,7 +276,7 @@ def test_SqliteAccountDAO_happypath_getCustomerAccounts():
 
     # ---- WHEN
 
-    accounts: list[Account] = controller.get_customer_accounts(customer_id=customer2.id)
+    accounts: list[Account] = controller.get_customer_accounts(customer_id=customer2.id, cntx=cntx)
 
     # ---- THEN
 

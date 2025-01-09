@@ -7,6 +7,8 @@ from src.model.config.models import ServiceConfig
 from src.model.error import errors
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from src.controller.authorization import Authorization
+from src.model.auth import roles
 
 
 class ICustomerCRUD_DAO(ABC):
@@ -86,6 +88,10 @@ class CustomerCRUDController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("creating Customer: %s", customer_data, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
+
         preconditions.check_argument(customer_data != None and isinstance(customer_data, Customer), "'customer_data' parameter must be provided and it must be Customer type")
         # we should not modify the passed in object - so take a copy
         customer_data = deepcopy(customer_data)
@@ -120,6 +126,9 @@ class CustomerCRUDController:
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("retrieving Customer id=%s", customer_id, **labels)
 
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
+
         preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")
 
         customer: Customer = self._customer_DAO.read(customer_id=customer_id, cntx=cntx)
@@ -136,6 +145,9 @@ class CustomerCRUDController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("updating Customer: %s", customer_data, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
 
         preconditions.check_argument(customer_data != None and isinstance(customer_data, Customer), "'customer_data' parameter must be provided and it must be Customer type")
         # we should not modify the passed in object - so take a copy
@@ -170,6 +182,9 @@ class CustomerCRUDController:
     def delete(self, customer_id: str, cntx: ExecutionContext = None):
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("deleting Customer id=%s", customer_id, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
 
         # this way we will also log the stuff
         preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")

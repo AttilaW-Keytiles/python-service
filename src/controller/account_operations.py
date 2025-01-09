@@ -9,7 +9,8 @@ from src.model.config.models import ServiceConfig
 from src.model.error import errors
 from abc import ABC, abstractmethod
 from copy import deepcopy
-import time
+from src.controller.authorization import Authorization
+from src.model.auth import roles
 
 
 class IAccountOperations_DAO(ABC):
@@ -88,6 +89,9 @@ class AccountOperationsController:
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("retrieving '%s' Transfers of Account id=%s", direction, account_id, **labels)
 
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
+
         preconditions.check_argument(strings.is_not_blank(account_id), "'account_id' can not be blank")
         # this account must exist
         existing_account = self._account_crud_DAO.read(account_id=account_id, cntx=cntx)
@@ -114,6 +118,9 @@ class AccountOperationsController:
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("retrieving Accounts for Customer id=%s", customer_id, **labels)
+
+        # if no permission, stop right here
+        Authorization.ensureHasRole(cntx = cntx, anyOf = {roles.AUTH_ROLE_EMPLOYEE})
 
         preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")
 
