@@ -44,9 +44,22 @@ When you cloned the repo fresh execute the following command once to get the env
 
 Now you have the Python environment with all used dependencies - **including Test dependencies!**
 
+## Run the service locally
+
 When you want to run the code you need to activate this environment:
  1. Open a Terminal (Linux) and go to the project folder
  1. execute: `$ source .venv/Scripts/activate` OR alternatively you can just use simply `run-service.sh`
+
+## Sending in HTTP requests
+
+This brings up everything, by default HTTP server is started on localhost:8080.
+
+Just open the contract - [banking-api-v1.yaml](api/banking-api-v1.yaml) with Swagger UI. And you will see all endpoints.
+
+**IMPORTANT!** You may notice all endpoints **require Authentication**.
+It is easy, we have one 'root' user configured - see [initial_data_users.sql](db_schemas/sqlite/initial_data_users.sql)! You see the username and password there! This is what you can use. Just put it to Basic Auth!
+
+You also find an exported [Postman](https://www.postman.com/downloads/) collection here: [Banking API.postman_collection.json](api/Banking%20API.postman_collection.json). Use it if you wish!
 
 ## Debug the code
 
@@ -85,6 +98,7 @@ To run them from command line
 To run individual tests from VSCode right-click, you need to configure your VSCode just once.  
 I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-vscode/
 
+
 ## Folder structure
 
 Quickly write down which folder is what? However many of them is obvious...
@@ -113,7 +127,6 @@ But here they are - in a dependency order
  * **persistence** - Controllers are defiining so called "Ports" (interfaces) - persistence related. Defining their "requirement". In this folder we find the implementation of those (Adpaters) for concrete DB servers. For now only Sqlite.
  * **api** - For now only the HTTP api. But could be gRPC or whatever else added too. These handlers are simply "translating" the incoming HTTP requests to Controllers. And they are relatively dump. But they know how to convert results
              returned and errors raised by Controllers back to HTTP to fulfill our Contract.
-
 
 ## Design decisions / considerations
 
