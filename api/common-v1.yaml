@@ -149,6 +149,14 @@ components:
             $ref: "#/components/schemas/CommonErrorCodes"
           default: []
           nullable: true
+          description: 'Identified and known error codes you find here - in some cases you might find more (unidentified) error codes in `delegatedErrorCodes` entry.'
+        delegatedErrorCodes:
+          type: array
+          items:
+            type: string
+          default: []
+          nullable: true
+          description: 'However goal is this array is always empty in some cases unknown/not (yet) mapped error codes might come from the application logic layer - we do not want to hide them! So they go here. But you should report these if you encounter with them to the Mainainers!'
 
     BaseResponse:
       type: object

@@ -49,8 +49,8 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
                 err = f"Failed to execute schema creation file '{file_path}' due to error: {e}"
                 self._LOG.error(err)
                 raise errors.ServiceRuntimeError(err, "transfer_db_schema_creation_failed") from e
-            finally:
-                 conn.close()
+
+        conn.close()
 
         self._LOG.info("DB schema is generated")
 
@@ -58,22 +58,22 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
     def insert(self, transfer_data: Transfer, cntx: ExecutionContext = None) -> None:
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("upserting Transfer: %s", transfer_data, **labels)
-        
+
+        # does record already exist?
+        # quick solution now... read back
+        existing = self.read(transfer_data.id, cntx)
+        if existing != None:
+            # Oops...
+            err: str = f"Failed to insert Transfer - already exists"
+            self._LOG.error(err, **labels)
+            raise errors.ConstraintViolationError(message=err, error_codes={errors.ConstraintViolationError.ERRCODE_ID_ALREADY_TAKEN})
+
         conn = self.db.get_connection()
 
         try:
             # this way we will also log the stuff
             preconditions.check_argument(transfer_data != None and isinstance(transfer_data, Transfer), "'transfer_data' parameter must be provided and it must be Transfer type")
             preconditions.check_argument(strings.is_not_blank(transfer_data.id), "'id' in 'transfer_data' Transfer record can not be blank")
-
-            # does record already exist?
-            # quick solution now... read back
-            existing = self.read(transfer_data.id, cntx)
-            if existing != None:
-                # Oops...
-                err: str = f"Failed to insert Transfer - already exists"
-                self._LOG.error(err, **labels)
-                raise errors.ConstraintViolationError(message=err, error_codes={errors.ConstraintViolationError.ERRCODE_ID_ALREADY_TAKEN})
 
             query = "INSERT INTO transfer(id, amount, src_account_id, dst_account_id, created_at_utc, created_by, status) VALUES(:id, :amount, :src_account_id, :dst_account_id, :created_at_utc, :created_by, :status)"
             cr = conn.cursor()
@@ -90,9 +90,9 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
             conn.commit()
 
         except Exception as e:
-                err = f"Failed to insert Transfer due to error: {e}"
-                self._LOG.error(err, **labels)
-                raise errors.ServiceRuntimeError(err, ITransferCRUD_DAO.ERRCODE_UPSERT_FAILED) from e
+            err = f"Failed to insert Transfer due to error: {e}"
+            self._LOG.error(err, **labels)
+            raise errors.ServiceRuntimeError(err, ITransferCRUD_DAO.ERRCODE_UPSERT_FAILED) from e
         finally:
              conn.close()
 

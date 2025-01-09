@@ -49,9 +49,8 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
                 err = f"Failed to execute schema creation file '{file_path}' due to error: {e}"
                 self._LOG.error(err)
                 raise errors.ServiceRuntimeError(err, "customer_db_schema_creation_failed") from e
-            finally:
-                 conn.close()
 
+        conn.close()
 
         self._LOG.info("DB schema is generated")
 

@@ -14,6 +14,7 @@ from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
 from src.api.http.account_handler_set_v1 import AccountHandlerSetV1
+from src.api.http.transfer_handler_set_v1 import TransferHandlerSetV1
 from src.model.error import errors
 from fastapi import FastAPI
 
@@ -130,7 +131,7 @@ def _startService() -> None:
     LOG.info("execution profile of the service is: %s", execution_profile)
 
     # Let's create the service instance
-    service = BankingService(app_type=AppType.FastAPI, config_file_path=cfg_file_path, log_config_file_path=log_cfg_file_path)
+    service = BankingService(app_type = AppType.FastAPI, config_file_path = cfg_file_path, log_config_file_path = log_cfg_file_path)
     
     # instantiate and bind the FastAPI handlers
     app: FastAPI = service.get_FastAPI_app()
@@ -146,6 +147,12 @@ def _startService() -> None:
         account_crud_contoller=BankingService.account_CRUD_controller
     )
     account_handlers.attach_to_http_server(app)
+    transfer_handlers = TransferHandlerSetV1(
+        # dependency injection
+        service_config=BankingService.service_config,
+        transfer_crud_contoller=BankingService.transfer_CRUD_controller
+    )
+    transfer_handlers.attach_to_http_server(app)
 
     # finally, fire it up
     service.start_service_and_wait_for_exit()

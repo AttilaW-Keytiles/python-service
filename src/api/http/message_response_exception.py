@@ -139,7 +139,7 @@ class MessageResponseException(HTTPException):
         if len(unrecognized_codes) > 0:
             # let's add all others just simply - here we can not fulfill our contract promise but fine, do not swallow what we have
             problems.append(
-                Problem(severity = Severity.error, errorCodes=unrecognized_codes, message = "These error codes are not part of the API contract but was provided by the application layer")
+                Problem(severity = Severity.error, delegatedErrorCodes=unrecognized_codes, message = "These error codes are not part of the API contract but was provided by the application layer")
             )
     
         return problems

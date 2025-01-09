@@ -65,8 +65,8 @@ class TransferCRUDController:
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='transfer_DAO', paramValueToCheck=transfer_DAO, acceptedTypes=ITransferCRUD_DAO, loggerToUse=self._LOG)
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_DAO', paramValueToCheck=account_DAO, acceptedTypes=IAccountCRUD_DAO, loggerToUse=self._LOG)
 
-        self._transfer_DAO = transfer_DAO
-        self._account_DAO = account_DAO
+        self._transfer_DAO: ITransferCRUD_DAO = transfer_DAO
+        self._account_DAO: IAccountCRUD_DAO = account_DAO
 
 
     def create(self, transfer_data: Transfer, cntx: ExecutionContext = None) -> None:
@@ -87,6 +87,13 @@ class TransferCRUDController:
             err: str = f"Failed to create Transfer - 'id' is mandatory information which was not provided or was empty. You should provide a valid UUID for the Transfer!"
             self._LOG.error(err, **labels)
             raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_MISSING_MANDATORY}, place_name = "transfer_data.id")
+        # this id should be free and not exist
+        existing_transfer = self._transfer_DAO.read(transfer_id = transfer_data.id)
+        if existing_transfer != None:
+            # Oops...
+            err: str = f"Failed to insert Transfer - already exists"
+            self._LOG.error(err, **labels)
+            raise errors.ConstraintViolationError(message=err, error_codes={errors.ConstraintViolationError.ERRCODE_ID_ALREADY_TAKEN})
         # amount must be there and must be positive
         if transfer_data.amount == None:
             # Oops...
