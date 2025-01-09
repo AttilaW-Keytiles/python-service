@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 from src.model.api.generated.common_v1 import MessageResponse, BaseResponse
 from src.api.http.message_response_exception import MessageResponseException
 from src.api.http.authenticator import HttpAuthenticator
+from src.util import strings
+from src.observability.metrics import MetricsFactory, HttpEndpointMetrics
 
 class BaseFastAPIHandlerSet(ABC):
     """
@@ -75,7 +77,7 @@ class BaseFastAPIHandlerSet(ABC):
         cntx = FastAPIHttpExecutionContext(http_request=http_request)
         return cntx
     
-    def _execute_handler_method_wrapper(self, request: Request, method, bodyObject: BaseModel = None, logRequestOnLevel: str = "info", logRequestBodyOnLevel: str = "info"):
+    def _execute_handler_method_wrapper(self, request: Request, method, endpoint_name: str = None, bodyObject: BaseModel = None, logRequestOnLevel: str = "info", logRequestBodyOnLevel: str = "info"):
         """
         Used by _proxy_ methods. It executes the given method "wrapped" - to ensure all boilerplate is done and exceptions handled correctly.
 
@@ -86,6 +88,17 @@ class BaseFastAPIHandlerSet(ABC):
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
 
         resp: Response = None
+
+        # create set of counters metrics - if we know the endpoint name somehow...
+        http_metrics: HttpEndpointMetrics = None
+        if endpoint_name == None:
+            endpoint_name = request.url.path
+            # careful!! if we have parameters in the path - we do not want to create tons of this for each concrete value...
+            # so let's do something tricky :-P
+            for key, value in request.path_params.items():
+                endpoint_name = endpoint_name.replace(value, f":{key}:")
+        if endpoint_name != None:
+            http_metrics = MetricsFactory.get_http_endpoint_metrics(endpoint_name = endpoint_name)
 
         # things could go wrong... so let's wrap it!
         try:
@@ -108,16 +121,26 @@ class BaseFastAPIHandlerSet(ABC):
                 resp = method(cntx, bodyObject)
             
         except MessageResponseException as exc:
+            # metrics! if we have...
+            if http_metrics != None:
+                http_metrics.increment(status_code = exc.status_code, method = request.method)
             # just simply throw it
             raise exc
         except Exception as exc:
             msgRespException = MessageResponseException.from_exception(exc=exc, cntx=cntx)
+            # metrics! if we have...
+            if http_metrics != None:
+                http_metrics.increment(status_code = msgRespException.status_code, method = request.method)
             # throw it the way we set the cause too
             raise msgRespException from exc
         finally:
             tookMillis = cntx.get_ellapsed_millis()
             self._LOG.debug("Req-Resp completed - took %s millis", tookMillis, **labels)
 
+        # metrics! if we have...
+        if http_metrics != None:
+            http_metrics.increment(status_code = resp.status_code, method = request.method)
+        
         return resp
     
     

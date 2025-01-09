@@ -110,7 +110,7 @@ class AccountOperationsController:
         return transfers
     
     
-    def get_customer_accounts(self, customer_id: str, cntx: ExecutionContext = None) -> list[Account]: 
+    def get_customer_accounts(self, customer_id: str, cntx: ExecutionContext = None) -> list[Account]:
         """
         Retrieves all Accounts belong to a specific Customer.
 

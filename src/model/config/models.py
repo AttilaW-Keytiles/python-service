@@ -30,6 +30,10 @@ class MetricsConfig:
         if entries == None:
             return
         self.is_enabled: bool = simple_dict_util.dict_getBoolByAny(theDict=entries, keys={"is_enabled", "isEnabled"})
+        self.GC_COLLECTOR_enabled: bool = simple_dict_util.dict_getBoolByAny(theDict=entries, keys={"GC_COLLECTOR_enabled"}, default=True)
+        self.PLATFORM_COLLECTOR_enabled: bool = simple_dict_util.dict_getBoolByAny(theDict=entries, keys={"PLATFORM_COLLECTOR_enabled"}, default=True)
+        self.PROCESS_COLLECTOR_enabled: bool = simple_dict_util.dict_getBoolByAny(theDict=entries, keys={"PROCESS_COLLECTOR_enabled"}, default=True)
+
         self.http_port: int = int(simple_dict_util.dict_getNumberByAny(theDict=entries, keys={"http_port", "httpPort"}, default=0))
 
 class BusinessLogic:
@@ -47,6 +51,6 @@ class ServiceConfig:
         self.fast_api_conf = FastAPIConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"fast_api", "fastAPI", "fastApi"}, default=dict()))
         self.persistence_config = PersistenceConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"persistence"}, default=dict()))
         self.business_logic = BusinessLogic(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"business_logic", "businessLogic"}, default=dict()))
-        self.metrics_conf = FastAPIConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"metrics"}, default=dict()))
+        self.metrics_conf = MetricsConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"metrics"}, default=dict()))
 
 

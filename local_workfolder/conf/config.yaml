@@ -29,4 +29,8 @@ business_logic:
 
 metrics:
   is_enabled: true
-  port: 9008
+  http_port: 9008
+  # By default the below collectors are enabled - uncomment if want to disable!
+  # GC_COLLECTOR_enabled: false
+  # PLATFORM_COLLECTOR_enabled: false
+  # PROCESS_COLLECTOR_enabled: false

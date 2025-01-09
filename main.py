@@ -3,6 +3,7 @@ import os
 import argparse
 from src.observability.logging import LoggerFactory, Logger
 from src.observability.common import buildGlobalLabels
+from src.observability.metrics import MetricsFactory
 from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
 from src.controller.account_crud import AccountCRUDController
@@ -53,6 +54,9 @@ class BankingService(BaseService):
 
     sqlite_db: SqliteDB
     """We keep this as it must be closed properly during shutdown"""
+
+    metricsHelper: MetricsFactory
+    """Helps with Metrics"""
 
 
     def __init__(self, app_type = None, execution_profile = None, config_file_path = None, log_config_file_path = None):
@@ -145,6 +149,10 @@ def _startService() -> None:
     # Let's create the service instance
     service = BankingService(app_type = AppType.FastAPI, config_file_path = cfg_file_path, log_config_file_path = log_cfg_file_path)
     
+    MetricsFactory.configure_metrics(config=BankingService.service_config.metrics_conf, global_labels=global_labels)
+    # start metrics endpoint, if...
+    MetricsFactory.start_prometheus_scraping_endpoint()
+
     # instantiate and bind the FastAPI handlers
     app: FastAPI = service.get_FastAPI_app()
     customer_handlers = CustomerHandlerSetV1(

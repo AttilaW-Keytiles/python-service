@@ -14,6 +14,7 @@ from src.api.http.message_response_exception import MessageResponseException
 from src.model.error import errors
 from util import strings
 from src.api.http.authenticator import HttpAuthenticator
+from src.observability.metrics import MetricsFactory, HttpEndpointMetrics
 
 
 class AccountHandlerSetV1(BaseFastAPIHandlerSet):
@@ -163,6 +164,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
 
 
     def get_account_transfer_history(self, cntx: FastAPIHttpExecutionContext, bodyObject: HistoryOperationRequest):
+
         account_id: str = bodyObject.accountId
         account = self._account_crud_contoller.get(account_id=account_id, cntx=cntx)
         if account == None:
@@ -180,4 +182,5 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
             transfers = history
         )
         resp = self._get_prepared_http_response(status_code = status.HTTP_200_OK, bodyModel = resp_obj, cntx = cntx)
+
         return resp

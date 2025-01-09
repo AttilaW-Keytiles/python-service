@@ -49,6 +49,7 @@ class LoggerFactory:
     # let's start empty
     _globalLabels: dict[str, any] = dict()
 
+    @staticmethod
     def configure_logging(logCfgFilePath: str|None, globalLabels: dict[str, any]) -> None:
         
         LoggerFactory._globalLabels = globalLabels
@@ -70,6 +71,7 @@ class LoggerFactory:
         ])
 
     # class method to get a logger
+    @staticmethod
     def get_logger(name: str) -> Logger:
         logger = LoggerFactory._loggers.get(name)
         if logger == None:
