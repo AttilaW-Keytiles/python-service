@@ -196,6 +196,10 @@ this purpose after evaluating libraries and options)
 
 If we want PROD ready (scrape ready) logs we need to format them into "1 line - 1 log event" and for this the JSON format fits well. So we needed a formatter.
 
+#### prometheus-client
+
+The official one to support Metrics. However this has a major drawback... Summary does not support quantiles... :-( It's a real shame as I do not really like Histograms. Why? I can tell you in spoken words :-P
+
 ### API
 
  * I follow "contract first" approach (which I prefer - can be discussed spoken words why). So we have generated models from the contract. But we do NOT have generated Server... again, can be discussed why.
