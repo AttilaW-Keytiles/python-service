@@ -42,41 +42,6 @@ class TransferHandlerSetV1(BaseFastAPIHandlerSet):
         app.include_router(router)
 
 
-    def _execute_handler_method_wrapper(self, request: Request, method, bodyObject: BaseModel = None):
-        """
-        Used by _proxy_ methods. It executes the given method "wrapped" - to ensure all boilerplate is done and exceptions handled correctly.
-
-        This way the methods who are running wrapped can really and purely focus on their business logic.
-        """
-        # as firs step - we need a context derived from the inbound request
-        cntx: FastAPIHttpExecutionContext = self._create_execution_context(http_request=request)
-        labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
-
-        self._log_inbound_request(http_request=request, cntx=cntx)
-
-        resp: Response = None
-
-        # things could go wrong... so let's wrap it!
-        try:
-            if bodyObject == None:
-                resp = method(cntx)
-            else:
-                resp = method(cntx, bodyObject)
-            
-        except MessageResponseException as exc:
-            # just simply throw it
-            raise exc
-        except Exception as exc:
-            msgRespException = MessageResponseException.from_exception(exc=exc, cntx=cntx)
-            # throw it the way we set the cause too
-            raise msgRespException from exc
-        finally:
-            tookMillis = cntx.get_ellapsed_millis()
-            self._LOG.debug("Req-Resp completed - took %s millis", tookMillis, **labels)
-
-        return resp
-
-
     # attilaw: crap! mapping does not work in Router - needed a trick :-P
     # def search_transfers_proxy(self, request: Request):
     #     return self._execute_handler_method_wrapper(request=request, method=self.get_transfer)

@@ -2,13 +2,14 @@ from src.model.api.generated.banking_api_v1 import Transfer, TransferStatus, Acc
 from src.controller.account_crud import IAccountCRUD_DAO
 from src.observability.logging import LoggerFactory, Logger
 from typing import Union
-from src.util import dependency_validator, preconditions, strings, ids
+from src.util import dependency_validator, preconditions, strings
 from src.context.contexts import ExecutionContext
 from src.model.config.models import ServiceConfig
 from src.model.error import errors
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import time
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class ITransferCRUD_DAO(ABC):
@@ -67,7 +68,17 @@ class TransferCRUDController:
 
         self._transfer_DAO: ITransferCRUD_DAO = transfer_DAO
         self._account_DAO: IAccountCRUD_DAO = account_DAO
+        self._config: ServiceConfig = config
 
+    def _round_to_Xdecimals(self, val: float, cntx: ExecutionContext = None) -> float:
+        # a Decimal object with an explicit exponent attribute/property (to be interpreted by quantize)
+        x_places = Decimal("1e-" + str(self._config.business_logic.roundig_decimals))
+        rounded = float(Decimal(val).quantize(x_places, rounding=ROUND_HALF_UP))
+        if rounded != val:
+            # better to always know about this
+            labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
+            self._LOG.info("rounding applied for configured %s decimals: %s -> %s", self._config.business_logic.roundig_decimals, val, rounded, **labels)
+        return rounded
 
     def create(self, transfer_data: Transfer, cntx: ExecutionContext = None) -> None:
         """
@@ -88,7 +99,7 @@ class TransferCRUDController:
             self._LOG.error(err, **labels)
             raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_MISSING_MANDATORY}, place_name = "transfer_data.id")
         # this id should be free and not exist
-        existing_transfer = self._transfer_DAO.read(transfer_id = transfer_data.id)
+        existing_transfer = self._transfer_DAO.read(transfer_id = transfer_data.id, cntx=cntx)
         if existing_transfer != None:
             # Oops...
             err: str = f"Failed to insert Transfer - already exists"
@@ -156,6 +167,10 @@ class TransferCRUDController:
             self._LOG.error(err, **labels)
             raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_SHOULD_NOT_BE_PROVIDED}, place_name = "transfer_data.createdAt")
 
+        # at tis point
+        # round amount to 2 decimals no matter what came in
+        transfer_data.amount = self._round_to_Xdecimals(transfer_data.amount, cntx=cntx)
+
         # OK now let's validate a few states - pretty much business logic
 
         # does have the source account enough money?
@@ -196,6 +211,9 @@ class TransferCRUDController:
 
         source_account_obj.balance -= transfer_data.amount
         destination_account_obj.balance += transfer_data.amount
+        # reduce math problems of float a bit - round 2 decimals
+        source_account_obj.balance = self._round_to_Xdecimals(source_account_obj.balance, cntx=cntx)
+        destination_account_obj.balance = self._round_to_Xdecimals(destination_account_obj.balance, cntx=cntx)
         # let's persist!
         self._account_DAO.upsert(account_data = source_account_obj)
         self._account_DAO.upsert(account_data = destination_account_obj)

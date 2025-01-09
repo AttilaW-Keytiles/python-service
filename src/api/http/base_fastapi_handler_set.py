@@ -72,6 +72,49 @@ class BaseFastAPIHandlerSet(ABC):
         cntx = FastAPIHttpExecutionContext(http_request=http_request)
         return cntx
     
+    def _execute_handler_method_wrapper(self, request: Request, method, bodyObject: BaseModel = None, logRequestOnLevel: str = "info", logRequestBodyOnLevel: str = "info"):
+        """
+        Used by _proxy_ methods. It executes the given method "wrapped" - to ensure all boilerplate is done and exceptions handled correctly.
+
+        This way the methods who are running wrapped can really and purely focus on their business logic.
+        """
+        # as firs step - we need a context derived from the inbound request
+        cntx: FastAPIHttpExecutionContext = self._create_execution_context(http_request=request)
+        labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
+
+        self._log_inbound_request(http_request=request, onLevel=logRequestOnLevel, cntx=cntx)
+        if bodyObject != None:
+            if not isinstance(logRequestBodyOnLevel, str):
+                logRequestBodyOnLevel = str(logRequestBodyOnLevel)
+            logRequestBodyOnLevel = logRequestBodyOnLevel.lower()
+            if logRequestBodyOnLevel == "debug":
+                self._LOG.debug("request bodyObject is: [[%s]]", bodyObject, **labels)
+            elif logRequestBodyOnLevel == "info":
+                self._LOG.info("request bodyObject is: [[%s]]", bodyObject, **labels)
+                
+        resp: Response = None
+
+        # things could go wrong... so let's wrap it!
+        try:
+            if bodyObject == None:
+                resp = method(cntx)
+            else:
+                resp = method(cntx, bodyObject)
+            
+        except MessageResponseException as exc:
+            # just simply throw it
+            raise exc
+        except Exception as exc:
+            msgRespException = MessageResponseException.from_exception(exc=exc, cntx=cntx)
+            # throw it the way we set the cause too
+            raise msgRespException from exc
+        finally:
+            tookMillis = cntx.get_ellapsed_millis()
+            self._LOG.debug("Req-Resp completed - took %s millis", tookMillis, **labels)
+
+        return resp
+    
+    
     # Subclasses can use this method get a prepared skeleton of MessageResponse
     def _get_prepared_MessageResponse(self, cntx: ExecutionContext = None) -> MessageResponse:
         receivedAt = -1
@@ -92,19 +135,32 @@ class BaseFastAPIHandlerSet(ABC):
         return str(http_request.client)
     
     # Subclasses can use this to dump the requ details into log
-    def _log_inbound_request(self, http_request: Request, cntx: ExecutionContext = None, onDebugLevel: bool = False) -> None:
+    def _log_inbound_request(self, http_request: Request, cntx: ExecutionContext = None, onLevel: str = "info") -> None:
+        """
+        Logs out the incoming request details - unless 'onLevel=none' ... otherwise 'onLevel' is used where valid values are "info", "debug" or "none"
+        """
         if self._LOG == None:
             return
+        
+        if not isinstance(onLevel, str):
+            onLevel = str(onLevel)
+        onLevel = onLevel.lower()
+        if onLevel != "info" and onLevel != "debug":
+            return
+        onDebugLevel = onLevel == "debug"
+
         query_args = http_request.url.query
         if query_args != "":
             query_args = "?"+query_args
         ipAddr = self._get_client_IP(http_request=http_request)
+        method = http_request.method
 
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         if onDebugLevel:
-            self._LOG.debug("incoming %s request '%s%s' from %s", http_request.method, http_request.url.path, query_args, ipAddr, **labels)
+            self._LOG.debug("incoming %s request '%s%s' from %s", method, http_request.url.path, query_args, ipAddr, **labels)
         else:
-            self._LOG.info("incoming %s request '%s%s' from %s", http_request.method, http_request.url.path, query_args, ipAddr, **labels)
+            self._LOG.info("incoming %s request '%s%s' from %s", method, http_request.url.path, query_args, ipAddr, **labels)
+            
 
     # Subclasses can use this to get a prepared Response object
     def _get_prepared_http_response(self, status_code: int = status.HTTP_200_OK, bodyModel: BaseModel = None, cntx: ExecutionContext = None, headers: dict[str, str] = None) -> Response:

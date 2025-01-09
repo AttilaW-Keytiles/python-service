@@ -22,6 +22,11 @@ persistence:
         - 'db_schemas/sqlite/schema_users.sql'
         - 'db_schemas/sqlite/initial_data_users.sql'
 
+business_logic:
+  # this is used in transfers and account balances
+  # if ommitted the default=2
+  roundig_decimals: 3
+
 metrics:
   is_enabled: true
   port: 9008

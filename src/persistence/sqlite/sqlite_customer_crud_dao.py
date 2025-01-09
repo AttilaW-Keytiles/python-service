@@ -58,7 +58,7 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("upserting Customer: %s", customer_data, **labels)
         
-        conn = self.db.get_connection()
+        conn = self.db.get_connection(cntx = cntx)
 
         try:
             # this way we will also log the stuff
@@ -99,7 +99,7 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
 
         customer: Customer = None
 
-        conn = self.db.get_connection()
+        conn = self.db.get_connection(cntx = cntx)
 
         try:
             # this way we will also log the stuff
@@ -138,7 +138,7 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("deleting Customer id=%s ...", customer_id, **labels)
         
-        conn = self.db.get_connection()
+        conn = self.db.get_connection(cntx = cntx)
 
         try:
             # this way we will also log the stuff

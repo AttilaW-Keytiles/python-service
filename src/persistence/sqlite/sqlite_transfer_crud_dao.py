@@ -68,7 +68,7 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
             self._LOG.error(err, **labels)
             raise errors.ConstraintViolationError(message=err, error_codes={errors.ConstraintViolationError.ERRCODE_ID_ALREADY_TAKEN})
 
-        conn = self.db.get_connection()
+        conn = self.db.get_connection(cntx = cntx)
 
         try:
             # this way we will also log the stuff
@@ -103,7 +103,7 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
 
         transfer: Transfer = None
 
-        conn = self.db.get_connection()
+        conn = self.db.get_connection(cntx = cntx)
 
         try:
             # this way we will also log the stuff

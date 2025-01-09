@@ -32,6 +32,12 @@ class MetricsConfig:
         self.is_enabled: bool = simple_dict_util.dict_getBoolByAny(theDict=entries, keys={"is_enabled", "isEnabled"})
         self.http_port: int = int(simple_dict_util.dict_getNumberByAny(theDict=entries, keys={"http_port", "httpPort"}, default=0))
 
+class BusinessLogic:
+
+    def __init__(self, **entries):
+        if entries == None:
+            return
+        self.roundig_decimals: int = int(simple_dict_util.dict_getNumberByAny(theDict=entries, keys={"roundig_decimals", "httpDecimals"}, default=2))
 
 class ServiceConfig:
     
@@ -40,6 +46,7 @@ class ServiceConfig:
             return
         self.fast_api_conf = FastAPIConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"fast_api", "fastAPI", "fastApi"}, default=dict()))
         self.persistence_config = PersistenceConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"persistence"}, default=dict()))
+        self.business_logic = BusinessLogic(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"business_logic", "businessLogic"}, default=dict()))
         self.metrics_conf = FastAPIConfig(**simple_dict_util.dict_getDictByAny(theDict=entries, keys={"metrics"}, default=dict()))
 
 
