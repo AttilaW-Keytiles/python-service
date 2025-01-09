@@ -9,6 +9,7 @@
 src/*.egg-info/
 # also no caches
 *__pycache__*
+.pytest_cache
 
 # exclude things to be committed from local_workfolder
 local_workfolder/data/*
