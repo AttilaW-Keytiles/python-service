@@ -136,7 +136,7 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
                 problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.requestBody, placeName="/version", errorCodes=[CommonErrorCodes.information_missing], message="In updates you must provide the 'version' of the resource in the body - this should be the same as you got back when you queried the resource!"))
 
         try:
-            self._customer_crud_contoller.update(customer_data = bodyObject)
+            self._customer_crud_contoller.update(customer_data = bodyObject, cntx=cntx)
         except errors.ResourceNotFoundError as exc:
             raise self._get_customer404_error(cntx=cntx)
         
@@ -164,7 +164,7 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
         customer_id: str = cntx.http_request.path_params.get("customerId")
 
         try:
-            self._customer_crud_contoller.delete(customer_id = customer_id)
+            self._customer_crud_contoller.delete(customer_id = customer_id, cntx=cntx)
         except errors.ResourceNotFoundError as exc:
             raise self._get_customer404_error(cntx=cntx)
         

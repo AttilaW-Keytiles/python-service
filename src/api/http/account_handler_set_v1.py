@@ -137,7 +137,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
                 problems = Problem(severity=Severity.error, place=ProblemPlaceEnum.requestBody, placeName="/version", errorCodes=[CommonErrorCodes.information_missing], message="In updates you must provide the 'version' of the resource in the body - this should be the same as you got back when you queried the resource!"))
 
         try:
-            self._account_crud_contoller.update(account_data = bodyObject)
+            self._account_crud_contoller.update(account_data = bodyObject, cntx=cntx)
         except errors.ResourceNotFoundError as exc:
             raise self._get_account404_error(cntx=cntx)
         
