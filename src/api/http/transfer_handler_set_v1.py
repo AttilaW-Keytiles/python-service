@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from src.api.http.message_response_exception import MessageResponseException
 from src.model.error import errors
 from util import strings
+from src.api.http.authenticator import HttpAuthenticator
 
 
 class TransferHandlerSetV1(BaseFastAPIHandlerSet):
@@ -22,8 +23,8 @@ class TransferHandlerSetV1(BaseFastAPIHandlerSet):
     BASE_URI = "/api/v1/transfers"
     BASE_REST_URI = BASE_URI + "/rest"
 
-    def __init__(self, transfer_crud_contoller: TransferCRUDController, service_config: ServiceConfig):
-        super().__init__(service_config=service_config, logger_to_use=LoggerFactory.getLogger("service.api.http.TransferHandler"))
+    def __init__(self, transfer_crud_contoller: TransferCRUDController, service_config: ServiceConfig, authenticator: HttpAuthenticator):
+        super().__init__(service_config=service_config, authenticator=authenticator, logger_to_use=LoggerFactory.getLogger("service.api.http.TransferHandler"))
 
         # validate params
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='transfer_crud_contoller', paramValueToCheck=transfer_crud_contoller, acceptedTypes=(TransferCRUDController), loggerToUse=self._LOG)

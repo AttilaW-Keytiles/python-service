@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, status, FastAPI
+from fastapi import APIRouter, Request, status, FastAPI
 from fastapi.responses import Response
 from src.model.api.generated.banking_api_v1 import Account, HistoryOperationRequest, HistoryOperationResponse, Transfer
 from src.model.api.generated.common_v1 import MessageResponse, Problem, ProblemPlaceEnum, CommonErrorCodes, Severity
@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from src.api.http.message_response_exception import MessageResponseException
 from src.model.error import errors
 from util import strings
+from src.api.http.authenticator import HttpAuthenticator
 
 
 class AccountHandlerSetV1(BaseFastAPIHandlerSet):
@@ -24,8 +25,8 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
     BASE_REST_URI = BASE_URI + "/rest"
     BASE_OPERATIONS_URI = BASE_URI + "/operation"
 
-    def __init__(self, account_crud_contoller: AccountCRUDController, account_operation_controller: AccountOperationsController, service_config: ServiceConfig):
-        super().__init__(service_config=service_config, logger_to_use=LoggerFactory.getLogger("service.api.http.AccountHandler"))
+    def __init__(self, account_crud_contoller: AccountCRUDController, account_operation_controller: AccountOperationsController, service_config: ServiceConfig, authenticator: HttpAuthenticator):
+        super().__init__(service_config=service_config, authenticator=authenticator, logger_to_use=LoggerFactory.getLogger("service.api.http.AccountHandler"))
 
         # validate params
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_crud_contoller', paramValueToCheck=account_crud_contoller, acceptedTypes=(AccountCRUDController), loggerToUse=self._LOG)
@@ -167,7 +168,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
         if account == None:
             raise self._get_account404_error(cntx=cntx)
         
-        history: list[Transfer] = self._account_operation_controller.get_account_transfers(account_id = account_id, direction=bodyObject.direction)
+        history: list[Transfer] = self._account_operation_controller.get_account_transfers(account_id = account_id, direction=bodyObject.direction, cntx=cntx)
 
         # we request this and will copy over values
         base_resp = self._get_prepared_BaseResponse(cntx = cntx)

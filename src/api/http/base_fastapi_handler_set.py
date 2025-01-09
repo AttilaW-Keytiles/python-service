@@ -7,15 +7,17 @@ from pydantic import BaseModel
 from abc import ABC, abstractmethod
 from src.model.api.generated.common_v1 import MessageResponse, BaseResponse
 from src.api.http.message_response_exception import MessageResponseException
+from src.api.http.authenticator import HttpAuthenticator
 
 class BaseFastAPIHandlerSet(ABC):
     """
     The superclass of all of our request handler classes. This way we can standardize behavior and provide common methods/features easily for concrete request handlers.
     """
     
-    def __init__(self, service_config: ServiceConfig, logger_to_use: Logger = None):
+    def __init__(self, service_config: ServiceConfig, authenticator: HttpAuthenticator, logger_to_use: Logger = None):
         # let's store the config
         self._service_config = service_config
+        self._authenticator = authenticator
         self._LOG = logger_to_use
         if self._LOG == None:
             # let's create one to make sure things do not stay under the radar...
@@ -25,6 +27,7 @@ class BaseFastAPIHandlerSet(ABC):
         self._attached_once = False
 
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='service_config', paramValueToCheck=service_config, acceptedTypes=(ServiceConfig), loggerToUse=self._LOG)
+        dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='authenticator', paramValueToCheck=authenticator, acceptedTypes=(HttpAuthenticator), loggerToUse=self._LOG)
 
     def attach_to_http_server(self, app: FastAPI) -> None:
         """
@@ -82,20 +85,23 @@ class BaseFastAPIHandlerSet(ABC):
         cntx: FastAPIHttpExecutionContext = self._create_execution_context(http_request=request)
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
 
-        self._log_inbound_request(http_request=request, onLevel=logRequestOnLevel, cntx=cntx)
-        if bodyObject != None:
-            if not isinstance(logRequestBodyOnLevel, str):
-                logRequestBodyOnLevel = str(logRequestBodyOnLevel)
-            logRequestBodyOnLevel = logRequestBodyOnLevel.lower()
-            if logRequestBodyOnLevel == "debug":
-                self._LOG.debug("request bodyObject is: [[%s]]", bodyObject, **labels)
-            elif logRequestBodyOnLevel == "info":
-                self._LOG.info("request bodyObject is: [[%s]]", bodyObject, **labels)
-                
         resp: Response = None
 
         # things could go wrong... so let's wrap it!
         try:
+            # authentication
+            self._authenticator.authenticate_if_present(request=request, cntx=cntx)
+
+            self._log_inbound_request(http_request=request, onLevel=logRequestOnLevel, cntx=cntx)
+            if bodyObject != None:
+                if not isinstance(logRequestBodyOnLevel, str):
+                    logRequestBodyOnLevel = str(logRequestBodyOnLevel)
+                logRequestBodyOnLevel = logRequestBodyOnLevel.lower()
+                if logRequestBodyOnLevel == "debug":
+                    self._LOG.debug("request bodyObject is: [[%s]]", bodyObject, **labels)
+                elif logRequestBodyOnLevel == "info":
+                    self._LOG.info("request bodyObject is: [[%s]]", bodyObject, **labels)
+
             if bodyObject == None:
                 resp = method(cntx)
             else:

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from src.api.http.message_response_exception import MessageResponseException
 from src.model.error import errors
 from util import strings
+from src.api.http.authenticator import HttpAuthenticator
 
 
 class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
@@ -22,8 +23,8 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
     BASE_URI = "/api/v1/customers"
     BASE_REST_URI = BASE_URI + "/rest"
 
-    def __init__(self, customer_crud_contoller: CustomerCRUDController, service_config: ServiceConfig):
-        super().__init__(service_config=service_config, logger_to_use=LoggerFactory.getLogger("service.api.http.CustomerHandler"))
+    def __init__(self, customer_crud_contoller: CustomerCRUDController, service_config: ServiceConfig, authenticator: HttpAuthenticator):
+        super().__init__(service_config=service_config, authenticator=authenticator, logger_to_use=LoggerFactory.getLogger("service.api.http.CustomerHandler"))
 
         # validate params
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='customer_crud_contoller', paramValueToCheck=customer_crud_contoller, acceptedTypes=(CustomerCRUDController), loggerToUse=self._LOG)

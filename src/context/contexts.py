@@ -8,7 +8,9 @@ class ExecutionContext(object):
     This context can carry information through backend function call-chain - letting each participants know the invocation context.
 
     Normally this context is created at the first public endpoint within the system someone invokes - no matter if this is a HTTP / gRPC endpoint or Event consuming from a Message Broker.
-    Carries crucial information to uniquely identify a given business transaction.
+    Carries:
+     * Crucial information to uniquely identify a given business transaction.
+     * Authenticated user info too (optional)
 
     To ensure good observability you should make sure you decorate your log event with at least the `transactionId` and the `traceId` as labels!
     The context help ypu doing that - see methods!
@@ -35,6 +37,23 @@ class ExecutionContext(object):
         if kwargs != None:
             for key, value in kwargs:
                 setattr(self, key, value)
+
+    def get_transaction_id(self) -> str:
+        """Returns the Transaction ID associated with the context"""
+        return self.transaction_id
+    
+    def get_trace_id(self) -> str:
+        """Returns the Trace ID associated with the context"""
+        return self.trace_id
+    
+    def get_auth(self) -> AuthInfo:
+        """Returns the auth information associated with the context"""
+        return self.auth_info
+    
+    def set_auth(self, auth_info: AuthInfo) -> None:
+        """Sets the auth information associated with the context"""
+        self.auth_info = auth_info
+
 
     def get_minimmal_info_for_log(self) -> dict[str, any]:
         """

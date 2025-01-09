@@ -11,11 +11,13 @@ from src.controller.transfer_crud import TransferCRUDController
 from persistence.sqlite.sqlite_customer_dao import SqliteCustomerDAO
 from persistence.sqlite.sqlite_account_dao import SqliteAccountDAO
 from persistence.sqlite.sqlite_transfer_dao import SqliteTransferDAO
+from persistence.sqlite.sqlite_user_dao import SqliteUserDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
 from src.api.http.account_handler_set_v1 import AccountHandlerSetV1
 from src.api.http.transfer_handler_set_v1 import TransferHandlerSetV1
+from src.api.http.authenticator import HttpAuthenticator
 from src.model.error import errors
 from fastapi import FastAPI
 
@@ -46,6 +48,8 @@ class BankingService(BaseService):
     """Reference to the account ops based controller"""
     transfer_CRUD_controller: TransferCRUDController
     """Reference to the transfer CRUD based controller"""
+    http_authenticator: HttpAuthenticator
+    """Reference to the Authenticator we can use in HTTP handlers"""
 
     sqlite_db: SqliteDB
     """We keep this as it must be closed properly during shutdown"""
@@ -69,12 +73,16 @@ class BankingService(BaseService):
                 customer_DAO = SqliteCustomerDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
                 accounts_DAO = SqliteAccountDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
                 transfers_DAO = SqliteTransferDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
+                users_DAO = SqliteUserDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
 
                 # controller layer
                 BankingService.customer_CRUD_controller = CustomerCRUDController(config=BankingService.service_config, customer_DAO=customer_DAO)
                 BankingService.account_CRUD_controller = AccountCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, customer_DAO=customer_DAO)
                 BankingService.account_operations_controller = AccountOperationsController(config=BankingService.service_config, account_ops_DAO=accounts_DAO, account_crud_DAO=accounts_DAO, customer_crud_DAO=customer_DAO)
                 BankingService.transfer_CRUD_controller = TransferCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, transfer_DAO=transfers_DAO)
+
+                # other
+                BankingService.http_authenticator = HttpAuthenticator(config = BankingService.service_config, user_provider = users_DAO)
 
             case _:
                 err = f"Unkown profile '{execution_profile}'! Can not build dependencies for this setup..."
@@ -142,20 +150,23 @@ def _startService() -> None:
     customer_handlers = CustomerHandlerSetV1(
         # dependency injection
         service_config=BankingService.service_config,
-        customer_crud_contoller=BankingService.customer_CRUD_controller
+        customer_crud_contoller=BankingService.customer_CRUD_controller,
+        authenticator = BankingService.http_authenticator
     )
     customer_handlers.attach_to_http_server(app)
     account_handlers = AccountHandlerSetV1(
         # dependency injection
         service_config=BankingService.service_config,
         account_crud_contoller=BankingService.account_CRUD_controller,
-        account_operation_controller=BankingService.account_operations_controller
+        account_operation_controller=BankingService.account_operations_controller,
+        authenticator = BankingService.http_authenticator
     )
     account_handlers.attach_to_http_server(app)
     transfer_handlers = TransferHandlerSetV1(
         # dependency injection
         service_config=BankingService.service_config,
-        transfer_crud_contoller=BankingService.transfer_CRUD_controller
+        transfer_crud_contoller=BankingService.transfer_CRUD_controller,
+        authenticator = BankingService.http_authenticator
     )
     transfer_handlers.attach_to_http_server(app)
 

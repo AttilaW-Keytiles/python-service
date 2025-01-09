@@ -203,7 +203,8 @@ Simple tasks:
  
  * Consequence of "Ports & Adapters": interesting situation we see with IAccountOperations_DAO... Now the implementor find himself in a situation however he is Accounts related DAO
    now still needs to deal with Transaction related stuff... see method [SqliteAccountDAO](src/persistence/sqlite/sqlite_account_dao.py).get_account_transfers() method! We are
-   full of Transfer objects...
+   full of Transfer objects... Structure clearly indicates we got into trouble - left it there, intentionally! As life is life.  
+   Tip: we have TODOs all over places - Jira ticket ID mentioning would be much much better to correlate all ;-)
 
  * Errors - take a look into [errors.py](src/model/error/).  
    Yes, they are "models".
