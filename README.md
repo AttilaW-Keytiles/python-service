@@ -85,6 +85,35 @@ To run them from command line
 To run individual tests from VSCode right-click, you need to configure your VSCode just once.  
 I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-vscode/
 
+## Folder structure
+
+Quickly write down which folder is what? However many of them is obvious...
+
+ * **api** - Contains the OpenApi contracts. Also the .sh file to generate models out of (modified) contracts. And Postman request collection. Can be handy...
+ * **db_schamas** - used to create SQL schemas
+ * **local_workfolder** - just see its [README](local_workfolder/README.md)
+ * **src** - the source code of the Service - organized into packages
+ * **test** - contains PyTest tests - following same package structure as code (hopefully)
+
+## Package structure
+
+Within the [src](src/) folder we structure the Service source code into packages.
+
+We followed "Clean architecture" principles basically so that might give a good guess if you know this immediatelly.
+If you don't know what it is, watch my presentation on YouTube! :-P just visit https://youtu.be/ENNoHz4i3Rk
+
+But here they are - in a dependency order
+
+ * **model** - As name suggests contains model classes. Stuff here are in the very center of the Application core. Everyone is depending on them. And they might cross-depend on each other as well.
+ * **util** - Just some useful stuff. To DRY.
+ * **observability** - Utility. Would externalize into a lib actually. It brings useful abstraction to implement some good standards in terms of Logging and Monitoring (metrics)
+ * **context** - Helps to establish a business transaction top-down when someone calls the Service any public endpoint. TransactionId helps to correlate call-chain. And connected with Logging is very helpful
+ * **controller** - Here we have the "use cases" so to speak. The main business logic is implemented here - "what can we do with what". These are operating on top of Models and orchestrating them. They also phrase their "requirements"
+                    by defining interfaces (Ports). Which we implement somewhere.
+ * **persistence** - Controllers are defiining so called "Ports" (interfaces) - persistence related. Defining their "requirement". In this folder we find the implementation of those (Adpaters) for concrete DB servers. For now only Sqlite.
+ * **api** - For now only the HTTP api. But could be gRPC or whatever else added too. These handlers are simply "translating" the incoming HTTP requests to Controllers. And they are relatively dump. But they know how to convert results
+             returned and errors raised by Controllers back to HTTP to fulfill our Contract.
+
 
 ## Design decisions / considerations
 

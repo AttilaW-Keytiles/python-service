@@ -6,5 +6,6 @@ It contains
  * config files - used to fire up the service having good defaults for local dev
  * data folder - to host stuff like SQLite data etc
  * logs - Logging is configured the way files are written here
+ * tmp - temp folder - during running tests for example the Sqlite db-s are created here
 
 Needless to say - because of the above reasons majority of this folder is not committed back to the Git repo

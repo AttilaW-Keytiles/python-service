@@ -1,0 +1,217 @@
+{
+	"info": {
+		"_postman_id": "47854be2-7350-4f6f-a1d8-65f58f65d4d0",
+		"name": "Banking API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "4204690"
+	},
+	"item": [
+		{
+			"name": "query Customer",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-trace-id",
+						"value": "trace-123",
+						"type": "text"
+					},
+					{
+						"key": "x-transactionid",
+						"value": "trId",
+						"type": "text"
+					}
+				],
+				"url": "localhost:8080/api/v1/customers/rest/cust1"
+			},
+			"response": []
+		},
+		{
+			"name": "Create new Customer - client side id allocation",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"cust1\",\r\n    \"name\": \"AttilaW\",\r\n    \"email\": \"attilaw@swf.technology\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "localhost:8080/api/v1/customers/rest"
+			},
+			"response": []
+		},
+		{
+			"name": "modify Customer",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"cust1\",\r\n    \"name\": \"AttilaW modified1\",\r\n    \"email\": \"attilaw@swf.technology\",\r\n    \"version\": 1\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "localhost:8080/api/v1/customers/rest/cust1"
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Customer",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "x-trace-id",
+						"value": "trace-123",
+						"type": "text"
+					},
+					{
+						"key": "x-transactionid",
+						"value": "trId",
+						"type": "text"
+					}
+				],
+				"url": "localhost:8080/api/v1/customers/rest/cust1"
+			},
+			"response": []
+		},
+		{
+			"name": "query multiple Customers",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-trace-id",
+						"value": "trace-123",
+						"type": "text"
+					},
+					{
+						"key": "x-transactionid",
+						"value": "trId",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "localhost:8080/api/v1/customers/rest/?customerIds=abc,efg",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"customers",
+						"rest",
+						""
+					],
+					"query": [
+						{
+							"key": "customerIds",
+							"value": "abc,efg"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create new Account",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"customerId\": \"cust1\",\r\n    \"balance\": 18,\r\n    \"status\": \"disabled\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "localhost:8080/api/v1/accounts/rest"
+			},
+			"response": []
+		},
+		{
+			"name": "query Account",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-trace-id",
+						"value": "trace-123",
+						"type": "text"
+					},
+					{
+						"key": "x-transactionid",
+						"value": "trId",
+						"type": "text"
+					}
+				],
+				"url": "localhost:8080/api/v1/accounts/rest/acc1"
+			},
+			"response": []
+		},
+		{
+			"name": "Modify Account",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"customerId\": \"cust1\",\r\n    \"balance\": 24,\r\n    \"status\": \"active\",\r\n    \"version\": 1\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "localhost:8080/api/v1/accounts/rest/ju3c-j0i5-otlb-hkce"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Transfer",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"test-transfer-1\",\r\n    \"sourceAccountId\": \"af0k-xc26-i2ej-w8w3\",\r\n    \"destinationAccountId\": \"af0k-xc26-i2ej-w8w3\",\r\n    \"amount\": 8.3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "localhost:8080/api/v1/transfers/rest"
+			},
+			"response": []
+		},
+		{
+			"name": "Query Transfer history (RPC)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"accountId\": \"ju3c-j0i5-otlb-hkce\",\r\n    \"direction\": \"outgoing\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "localhost:8080/api/v1/accounts/operation/history"
+			},
+			"response": []
+		}
+	]
+}
