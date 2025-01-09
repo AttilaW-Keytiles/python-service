@@ -30,7 +30,8 @@ business_logic:
 metrics:
   is_enabled: true
   http_port: 9008
-  # By default the below collectors are enabled - uncomment if want to disable!
-  # GC_COLLECTOR_enabled: false
-  # PLATFORM_COLLECTOR_enabled: false
-  # PROCESS_COLLECTOR_enabled: false
+  # By default the below collectors are disabled
+  # not useful because they do not have the global labels we need to distinguish in time series... so would be just noise and cross-crap
+  GC_COLLECTOR_enabled: false
+  PLATFORM_COLLECTOR_enabled: false
+  PROCESS_COLLECTOR_enabled: false

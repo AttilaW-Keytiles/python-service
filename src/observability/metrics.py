@@ -26,7 +26,7 @@ class HttpEndpointMetrics(MetricSet):
             label_names.add('endpoint')
             label_names.add('status_code')
             label_names.add('method')
-            cls._counter_template = prometheus_client.Counter('http_count', 'Count of events groupped by status code (200, 201, 400, ...) and method (POST, GET, ...)', labelnames=label_names)
+            cls._counter_template = prometheus_client.Counter('http_exec_count', 'Count of invocations - groupped by status code (200, 201, 400, ...) and method (POST, GET, ...)', labelnames=label_names)
         return cls._counter_template
 
 
