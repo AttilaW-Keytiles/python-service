@@ -15,9 +15,11 @@ persistence:
         - 'db_schemas/sqlite/schema_customers.sql'
       accounts:
         - 'db_schemas/sqlite/schema_accounts.sql'
-      employees:
-        - 'db_schemas/sqlite/schema_employees.sql'
-        - 'db_schemas/sqlite/initial_data_employees.sql'
+      transfers:
+        - 'db_schemas/sqlite/schema_transfers.sql'
+      users:
+        - 'db_schemas/sqlite/schema_users.sql'
+        - 'db_schemas/sqlite/initial_data_users.sql'
 
 metrics:
   is_enabled: true

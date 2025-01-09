@@ -6,8 +6,10 @@ from src.observability.common import buildGlobalLabels
 from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
 from src.controller.account_crud import AccountCRUDController
+from src.controller.transfer_crud import TransferCRUDController
 from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
 from src.persistence.sqlite.sqlite_account_crud_dao import SqliteAccountDAO
+from src.persistence.sqlite.sqlite_transfer_crud_dao import SqliteTransferDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
@@ -38,6 +40,8 @@ class BankingService(BaseService):
     """Reference to the customer CRUD based controller"""
     account_CRUD_controller: AccountCRUDController
     """Reference to the account CRUD based controller"""
+    transfer_CRUD_controller: TransferCRUDController
+    """Reference to the transfer CRUD based controller"""
 
     sqlite_db: SqliteDB
     """We keep this as it must be closed properly during shutdown"""
@@ -60,10 +64,12 @@ class BankingService(BaseService):
                 BankingService.sqlite_db: SqliteDB = SqliteDB(config = BankingService.service_config.persistence_config.sqlite_config)
                 customer_DAO = SqliteCustomerDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
                 accounts_DAO = SqliteAccountDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
+                transfers_DAO = SqliteTransferDAO(config = BankingService.service_config.persistence_config.sqlite_config, db = BankingService.sqlite_db)
 
                 # controller layer
                 BankingService.customer_CRUD_controller = CustomerCRUDController(config=BankingService.service_config, customer_DAO=customer_DAO)
                 BankingService.account_CRUD_controller = AccountCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, customer_DAO=customer_DAO)
+                BankingService.transfer_CRUD_controller = TransferCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, transfer_DAO=transfers_DAO)
 
             case _:
                 err = f"Unkown profile '{execution_profile}'! Can not build dependencies for this setup..."

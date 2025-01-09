@@ -1,5 +1,6 @@
 from fastapi import Request
 from src.util import preconditions, ids
+from src.model.auth.auth_info import AuthInfo
 import time
 
 class ExecutionContext(object):
@@ -13,17 +14,23 @@ class ExecutionContext(object):
     The context help ypu doing that - see methods!
     """
     
-    def __init__(self, transaction_id: str = None, trace_id: str = None, **kwargs):
+    def __init__(self, transaction_id: str = None, trace_id: str = None, auth_info: AuthInfo = None, **kwargs):
         # we keep the timestamp of our creation - UTC Epoch
         self.created_ts = time.time()
+        """When was this context created? Linux UTC timestamp (since Epoch)"""
 
         self.transaction_id = transaction_id
+        """The transactionId associated with this context"""
         if self.transaction_id == None:
             self.transaction_id = ids.generate_uuid()
 
         self.trace_id = trace_id
+        """The traceId associated with this context"""
         if self.trace_id == None:
             self.trace_id = ids.generate_uuid()
+
+        self.auth_info = auth_info
+        """Who is authenticated on this context? can be nobody..."""
 
         if kwargs != None:
             for key, value in kwargs:
@@ -37,6 +44,9 @@ class ExecutionContext(object):
             'transId': self.transaction_id,
             'traceId': self.trace_id
         }
+        # if we have loggen in user let's add his ID - this way we can also search logs based on UserID later (not bad for audit...)
+        if self.auth_info != None:
+            data.update({"userId": self.auth_info.user_id})
         return data
 
     
@@ -67,7 +77,7 @@ class ExecutionContext(object):
 
 class FastAPIHttpExecutionContext(ExecutionContext):
 
-    def __init__(self, http_request: Request, transaction_id = None, trace_id = None):
+    def __init__(self, http_request: Request, transaction_id = None, trace_id = None, auth_info = None, **kwargs):
         self.http_request = http_request
         preconditions.check_argument(http_request != None and isinstance(http_request, Request), "'http_request' can not be None and must be a fastapi.Request")
 
@@ -81,4 +91,4 @@ class FastAPIHttpExecutionContext(ExecutionContext):
             # override the traceId - no matter what was possibly given
             trace_id = traceIdHeader
 
-        super().__init__(transaction_id, trace_id)
+        super().__init__(transaction_id, trace_id, auth_info)

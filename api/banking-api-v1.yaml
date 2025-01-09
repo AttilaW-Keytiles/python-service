@@ -676,14 +676,14 @@ paths:
       - $ref: 'common-v1.yaml#/components/parameters/traceIdHeader'
       - $ref: '#/components/parameters/accountId'
       requestBody:
-        description: 'The Customer resource to create.'
+        description: 'The operation parametrization'
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/HistoryOperationRequest'
       responses:
         '200':
-          description: Returns an array of the matching transfers.
+          description: Returns an array of the matching transfers. The result is ordered by time, descending.
           content:
             'application/json':
               schema:
@@ -953,7 +953,7 @@ components:
           nullable: false
           readOnly: true
           description: >
-                      Unique ID of the bank account.  
+                      Unique ID of the bank account. It has a format of "xxxx-xxxx-xxxx-xxxx" where we use [a-zA-Z0-9] characters.  
                         
                       This is always generated server side to fulfill format. Therefore this attribute is read-only. You can not send it on create (POST) / update (PUT) requests.
         customerId:
@@ -1007,16 +1007,16 @@ components:
         - amount
         - sourceAccountId
         - destinationAccountId
-        - status
       properties:
         id:
           type: string
-          readOnly: true
           nullable: false
           description: >
                       Unique ID of the transfer - Timed UUID v4 style.  
                         
-                      This is always generated server side to fulfill format. Therefore this attribute is read-only. You can not send it on create (POST) requests.
+                      Creation of a Transfer MUST be idempotent and safe! It simply can not happen that you accidentally execute the same Transfer multiple times right?
+                      Therefore the ID of the Transfer must be generated Client side and provided! It is not a big deal just create a timed UUID and it should do the job. In case by 0.00000000001% chance
+                      you did not provide a unique ID at least you will know because creation will be rejected with duplicated ID. ;-)
         amount:
           type: number
           format: float

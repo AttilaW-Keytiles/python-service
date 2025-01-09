@@ -118,6 +118,9 @@ I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-
       Of course such step also would involve prior discussions and agreement in certain standards. Now this is not in the focus.
       So everything is implemented in-place within this only service.
     * Employee passwords stored raw in DB - WHHHAAAAATTTT? :-) OK for now.
+    * Data consistency is not full. You can not create an Account for a non-exissting Customer BUT the other way around works. Meaning that e.g. you can create a Customer, then an Account
+      and then delete the Customer. It will just simply work.  
+      The Customer would vanish however the Account would still refer to his prior id. I think fine for now...
 
  
 ### 3rd party Libraries
@@ -176,8 +179,10 @@ Here are a few handy tools for your work:
 
  ## TODO
 
-Design related:
+Design / Functionality related:
  * DAO layer is using the generated models out of API for now. Mmmmmmm not good... DAO layer should have its own. See placeholder: [db TODO](src/model/db/TODO.md)
+ * Customers can not initiate Transfers from their own accounts. Although 'customer_id' link is there in user table, not used at the moment.
+ * When Transfer is created there is no DB transaction boundary! And this is really not a good idea for production... All DB operations should go "all or none" fashion!
 
 Simple tasks:
  * logging: Uvicorn log integration is not good - comes with empty labels and this way would not be correctly collected.
