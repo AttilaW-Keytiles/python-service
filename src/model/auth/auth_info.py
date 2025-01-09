@@ -10,8 +10,13 @@ class AuthInfo:
         self.user_name = user_name
         """The user.username (from table) who this auth info represents"""
         self.roles = roles
+        if self.roles == None:
+            self.roles = set()
         """Set of associated roles - basically what can this guy do? (details later - but see rolse.py!)"""
 
     def has_role(self, role: str) -> bool:
         """Checks if we have this role or not"""
-        return role in self.roles
+        for role_has in self.roles:
+            if role_has == role:
+                return True
+        return False

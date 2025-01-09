@@ -85,7 +85,7 @@ class HttpAuthenticator:
                     user_id = user.id,
                     user_name = user.username,
                     # for now everyone is employee
-                    roles = [roles.AUTH_ROLE_EMPLOYEE]
+                    roles = {roles.AUTH_ROLE_EMPLOYEE}
                 )
                 self._LOG.debug("user authenticated successfully: %s", auth_info, **labels)
                 cntx.set_auth(auth_info = auth_info)

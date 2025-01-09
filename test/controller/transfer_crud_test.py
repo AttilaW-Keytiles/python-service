@@ -47,8 +47,11 @@ def getAuthenticatedContext() -> ExecutionContext:
     auth_info = AuthInfo(
         user_id="fake-user-id",
         user_name="fake_guy",
-        roles = roles.AUTH_ROLES.keys
+        roles = set()
     )
+    # lets add all of them
+    for role in roles.AUTH_ROLES.keys():
+        auth_info.roles.add(role)
     cntx = ExecutionContext(auth_info=auth_info)
     return cntx
 
