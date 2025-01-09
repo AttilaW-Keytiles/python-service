@@ -39,9 +39,6 @@ def createController() -> AccountCRUDController:
     controller: AccountCRUDController = AccountCRUDController(config=serviceConfig, account_DAO=accountDAO, customer_DAO=customerDAO)
     return controller
 
-def persistCustomer(customer: Customer, controller: AccountCRUDController):
-    controller._customer_DAO.upsert(customer)
-
 
 def test_SqliteAccountDAO_happypath_opSequence():
     """This test executes a sequence of CRUD operations - and check the state. Basically it is testing through all methods.

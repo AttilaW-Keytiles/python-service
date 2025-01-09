@@ -7,12 +7,13 @@ persistence:
   # if sqlite is used then here is its config
   sqlite:
     # note: you can NOT use literal ":memory:" here - the SqliteDB class is not prepared for this
-    # otherwise point to the file
+    # but it points to the file will be used as DB
     db_file: local_workfolder/data/sqlite.db
     schema_files:
       # used by SqliteCustomerDAO
       customers:
         - 'db_schemas/sqlite/schema_customers.sql'
+        - 'db_schemas/sqlite/initial_data_customers.sql'
       accounts:
         - 'db_schemas/sqlite/schema_accounts.sql'
       transfers:

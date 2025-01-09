@@ -1,4 +1,4 @@
-from src.model.api.generated.banking_api_v1 import Transfer, TransferStatus
+from src.model.api.generated.banking_api_v1 import Transfer, TransferStatus, AccountStatus
 from src.controller.account_crud import IAccountCRUD_DAO
 from src.observability.logging import LoggerFactory, Logger
 from typing import Union
@@ -104,20 +104,26 @@ class TransferCRUDController:
             err: str = f"Failed to create Transfer - 'sourceAccountId' is mandatory information which was not provided or was empty. You should provide it!"
             self._LOG.error(err, **labels)
             raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_MISSING_MANDATORY}, place_name = "transfer_data.sourceAccountId")
-        # and must exist!
-        source_account_obj = self._account_DAO.read(account_id = transfer_data.sourceAccountId, cntx = cntx)
-        if source_account_obj == None:
-            # Oops
-            err: str = f"Failed to create Transfer - provided 'sourceAccountId' is invalid - this account does not exist!"
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "transfer_data.sourceAccountId")
         # destination account is mandatory...
         if strings.is_blank(transfer_data.destinationAccountId):
             # Oops...
             err: str = f"Failed to create Transfer - 'destinationAccountId' is mandatory information which was not provided or was empty. You should provide it!"
             self._LOG.error(err, **labels)
             raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_MISSING_MANDATORY}, place_name = "transfer_data.destinationAccountId")
-        # and must exist!
+        # source and dest can not be the same
+        if transfer_data.sourceAccountId == transfer_data.destinationAccountId:
+            # Oops...
+            err: str = f"Failed to create Transfer - 'destinationAccountId' can not be the same as 'sourceAccountId'!"
+            self._LOG.error(err, **labels)
+            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "transfer_data.destinationAccountId")
+        # source account must exist!
+        source_account_obj = self._account_DAO.read(account_id = transfer_data.sourceAccountId, cntx = cntx)
+        if source_account_obj == None:
+            # Oops
+            err: str = f"Failed to create Transfer - provided 'sourceAccountId' is invalid - this account does not exist!"
+            self._LOG.error(err, **labels)
+            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "transfer_data.sourceAccountId")
+        # destination account must exist!
         destination_account_obj = self._account_DAO.read(account_id = transfer_data.destinationAccountId, cntx = cntx)
         if destination_account_obj == None:
             # Oops
@@ -143,12 +149,26 @@ class TransferCRUDController:
             self._LOG.error(err, **labels)
             raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_SHOULD_NOT_BE_PROVIDED}, place_name = "transfer_data.createdAt")
 
+        # OK now let's validate a few states - pretty much business logic
+
         # does have the source account enough money?
         if source_account_obj.balance < transfer_data.amount:
             # Oops...
             err: str = f"Failed to create Transfer - source Account does not have enough money..."
             self._LOG.error(err, **labels)
             raise errors.ConstraintViolationError(message=err, error_codes={"not_enough_balance"})
+        # is the source account active?
+        if source_account_obj.status != AccountStatus.active:
+            # Oops...
+            err: str = f"Failed to create Transfer - source Account status is not Active..."
+            self._LOG.error(err, **labels)
+            raise errors.ConstraintViolationError(message=err, error_codes={"src_account_invalid_status"})
+        # is the dest account active?
+        if destination_account_obj.status != AccountStatus.active:
+            # Oops...
+            err: str = f"Failed to create Transfer - destionation Account status is not Active..."
+            self._LOG.error(err, **labels)
+            raise errors.ConstraintViolationError(message=err, error_codes={"dst_account_invalid_status"})
 
         # current time
         transfer_data.createdAt = int(time.time())
@@ -176,7 +196,7 @@ class TransferCRUDController:
         # this means the transaction is settled
         transfer_data.status = TransferStatus.settled
         # and let's persist!
-        self._transfer_DAO.create(transfer_data = transfer_data)
+        self._transfer_DAO.insert(transfer_data = transfer_data)
 
         # !!!!!!! DB transaction ends here
 
