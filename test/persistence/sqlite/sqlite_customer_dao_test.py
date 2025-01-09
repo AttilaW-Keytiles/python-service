@@ -1,6 +1,6 @@
 from src.model.config.models import SqliteConfig
 from src.persistence.sqlite.sqlite_db import SqliteDB
-from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
+from persistence.sqlite.sqlite_customer_dao import SqliteCustomerDAO
 from src.controller.customer_crud import ICustomerCRUD_DAO
 from src.model.api.generated.banking_api_v1 import Customer
 from src.model.error import errors

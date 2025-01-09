@@ -106,7 +106,8 @@ I followed this: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-
  1. For maintainability:
     * Used "Clean architecture" principles (not overdone, simplified!) for code structuring (package design)
     * "Ports & Adapters" pattern - e.g. this way can start with SQLite persistence but has the possibility to switch later relatively cheap
-    * Using interfaces opens a way to use "Dependancy injection" and more configurability - so let's do it!
+    * Using interfaces opens a way to use "Dependency injection" and more configurability - so let's do it!
+      (No framework or inversion of control is involved - we just "wire" manually for now)
     * Try design things the way out of the box we do not lock ourselves "too much" to any concrete libraries or frameworks.
     * Implement DRY (Do not Repeat Yourself) - and eliminate boilerplate as much as possible - out of the business logic
 
@@ -189,7 +190,7 @@ Simple tasks:
    Should take a closer look into python.logging package to check if we can capture the LoggerFactory / Logger somehow. And if yes refactor our logging package to step in there too for providing global labels there too.
  * Python best practice: go through code and change all var/param/method names from camelCase to snake_case. camelCase is too much in my hand.. :-)
 
-## Topics to talk about
+## Pitch - some Topics to talk about
 
  * Just go through the API part bullets quickly. Many interesting topics are there...
 
@@ -199,6 +200,10 @@ Simple tasks:
  * Consequence of following "Clean architecture" - if we take principles by the book.  
    Example: take a look on Controller <-> Persistence cooperation! Where we used "Ports & Adapters" pattern to
    achieve inwards dependency. How would my DAO layer look like after having 10+ Controllers?
+ 
+ * Consequence of "Ports & Adapters": interesting situation we see with IAccountOperations_DAO... Now the implementor find himself in a situation however he is Accounts related DAO
+   now still needs to deal with Transaction related stuff... see method [SqliteAccountDAO](src/persistence/sqlite/sqlite_account_dao.py).get_account_transfers() method! We are
+   full of Transfer objects...
 
  * Errors - take a look into [errors.py](src/model/error/).  
    Yes, they are "models".

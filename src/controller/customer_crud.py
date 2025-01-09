@@ -115,7 +115,7 @@ class CustomerCRUDController:
 
     def get(self, customer_id: str, cntx: ExecutionContext = None) -> Union[Customer|None]:
         """
-        Retrieves a Customer belongs to 'customer_id' - if exists.
+        Retrieves a Customer belongs to 'customer_id' - if exists. Otherwise None.
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
         self._LOG.debug("retrieving Customer id=%s", customer_id, **labels)

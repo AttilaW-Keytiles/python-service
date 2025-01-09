@@ -106,7 +106,7 @@ class SqliteCustomerDAO(ICustomerCRUD_DAO):
             preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")
 
             # we always use params - SQL Injection danger!!
-            query = "SELECT id, name, email, version FROM customer WHERE id=:id"
+            query = "SELECT * FROM customer WHERE id=:id"
             cr = conn.cursor()
             params = {
                 "id": customer_id,

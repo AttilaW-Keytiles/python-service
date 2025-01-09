@@ -4,6 +4,7 @@ from src.model.api.generated.banking_api_v1 import Account
 from src.model.api.generated.common_v1 import MessageResponse, Problem, ProblemPlaceEnum, CommonErrorCodes, Severity
 from src.observability.logging import LoggerFactory, Logger
 from src.controller.account_crud import AccountCRUDController
+from src.controller.account_operations import AccountOperationsController
 from src.util import dependency_validator, ids
 from src.model.config.models import ServiceConfig
 from src.api.http.base_fastapi_handler_set import BaseFastAPIHandlerSet
@@ -23,11 +24,12 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
     BASE_REST_URI = BASE_URI + "/rest"
     BASE_OPERATIONS_URI = BASE_URI + "/operation"
 
-    def __init__(self, account_crud_contoller: AccountCRUDController, service_config: ServiceConfig):
+    def __init__(self, account_crud_contoller: AccountCRUDController, account_operation_controller: AccountOperationsController, service_config: ServiceConfig):
         super().__init__(service_config=service_config, logger_to_use=LoggerFactory.getLogger("service.api.http.AccountHandler"))
 
         # validate params
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_crud_contoller', paramValueToCheck=account_crud_contoller, acceptedTypes=(AccountCRUDController), loggerToUse=self._LOG)
+        dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_operation_controller', paramValueToCheck=account_operation_controller, acceptedTypes=(AccountOperationsController), loggerToUse=self._LOG)
 
         self._account_crud_contoller = account_crud_contoller
         """Our controller - HTTP operations are mapped into method invocations on it"""

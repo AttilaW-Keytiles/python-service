@@ -14,6 +14,23 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
     SQLite implementation (Adapter) of the `~src.controller.transfer_crud.ITransferCRUD_DAO` interface (Port).
     """
 
+    # TODO aaaarrrrghhh this really should not be here!!
+    # Search for reference and see more TODOs over there - should be cleaned - no time now...
+    @staticmethod
+    def db_row_to_transfer_obj(row) -> Transfer:
+        if row == None:
+             return None
+        
+        return Transfer(
+            id = row["id"],
+            status = TransferStatus(row["status"]),
+            amount = row["amount"],
+            sourceAccountId = row["src_account_id"],
+            destinationAccountId = row["dst_account_id"],
+            createdBy = row["created_by"],
+            createdAt = row["created_at_utc"],
+        )
+
     def __init__(self, config: SqliteConfig = None, db: SqliteDB = None):
         self._LOG: Logger = LoggerFactory.getLogger("service.persistence.SqliteTransferDAO")
 
@@ -110,7 +127,7 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
             preconditions.check_argument(strings.is_not_blank(transfer_id), "'transfer_id' can not be blank")
 
             # we always use params - SQL Injection danger!!
-            query = "SELECT id, amount, src_account_id, dst_account_id, created_at_utc, created_by, status FROM transfer WHERE id=:id"
+            query = "SELECT * FROM transfer WHERE id=:id"
             cr = conn.cursor()
             params = {
                 "id": transfer_id,
@@ -118,15 +135,7 @@ class SqliteTransferDAO(ITransferCRUD_DAO):
             cr.execute(query, params)
             row = cr.fetchone()
             if row != None:
-                transfer = Transfer(
-                      id = row["id"],
-                      status = TransferStatus(row["status"]),
-                      amount = row["amount"],
-                      sourceAccountId = row["src_account_id"],
-                      destinationAccountId = row["dst_account_id"],
-                      createdBy = row["created_by"],
-                      createdAt = row["created_at_utc"],
-                 )
+                transfer = SqliteTransferDAO.db_row_to_transfer_obj(row)
 
         except Exception as e:
                 err = f"Failed to read Transfer id='{transfer_id}' due to error: {e}"

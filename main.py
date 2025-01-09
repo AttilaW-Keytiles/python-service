@@ -6,10 +6,11 @@ from src.observability.common import buildGlobalLabels
 from src.service.base_service import BaseService, AppType
 from src.controller.customer_crud import CustomerCRUDController
 from src.controller.account_crud import AccountCRUDController
+from src.controller.account_operations import AccountOperationsController
 from src.controller.transfer_crud import TransferCRUDController
-from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
-from src.persistence.sqlite.sqlite_account_crud_dao import SqliteAccountDAO
-from src.persistence.sqlite.sqlite_transfer_crud_dao import SqliteTransferDAO
+from persistence.sqlite.sqlite_customer_dao import SqliteCustomerDAO
+from persistence.sqlite.sqlite_account_dao import SqliteAccountDAO
+from persistence.sqlite.sqlite_transfer_dao import SqliteTransferDAO
 from src.persistence.sqlite.sqlite_db import SqliteDB
 from src.model.config.models import ServiceConfig
 from src.api.http.customer_handler_set_v1 import CustomerHandlerSetV1
@@ -41,6 +42,8 @@ class BankingService(BaseService):
     """Reference to the customer CRUD based controller"""
     account_CRUD_controller: AccountCRUDController
     """Reference to the account CRUD based controller"""
+    account_operations_controller: AccountOperationsController
+    """Reference to the account ops based controller"""
     transfer_CRUD_controller: TransferCRUDController
     """Reference to the transfer CRUD based controller"""
 
@@ -70,6 +73,7 @@ class BankingService(BaseService):
                 # controller layer
                 BankingService.customer_CRUD_controller = CustomerCRUDController(config=BankingService.service_config, customer_DAO=customer_DAO)
                 BankingService.account_CRUD_controller = AccountCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, customer_DAO=customer_DAO)
+                BankingService.account_operations_controller = AccountOperationsController(config=BankingService.service_config, account_ops_DAO=accounts_DAO, account_crud_DAO=accounts_DAO, customer_crud_DAO=customer_DAO)
                 BankingService.transfer_CRUD_controller = TransferCRUDController(config=BankingService.service_config, account_DAO=accounts_DAO, transfer_DAO=transfers_DAO)
 
             case _:
@@ -144,7 +148,8 @@ def _startService() -> None:
     account_handlers = AccountHandlerSetV1(
         # dependency injection
         service_config=BankingService.service_config,
-        account_crud_contoller=BankingService.account_CRUD_controller
+        account_crud_contoller=BankingService.account_CRUD_controller,
+        account_operation_controller=BankingService.account_operations_controller
     )
     account_handlers.attach_to_http_server(app)
     transfer_handlers = TransferHandlerSetV1(

@@ -1,8 +1,9 @@
 from src.model.api.generated.banking_api_v1 import Transfer, TransferDirection, Account
+from src.controller.account_crud import IAccountCRUD_DAO
 from src.controller.customer_crud import ICustomerCRUD_DAO
 from src.observability.logging import LoggerFactory, Logger
 from typing import Union
-from src.util import dependency_validator, preconditions, strings, ids
+from src.util import dependency_validator, preconditions, strings
 from src.context.contexts import ExecutionContext
 from src.model.config.models import ServiceConfig
 from src.model.error import errors
@@ -61,181 +62,76 @@ class AccountOperationsController:
     and you must inject an implementation during construct time.
     """
 
-    # Quick note: we need the ICustomerCRUD_DAO too to validate Customer exists
-    def __init__(self, config: ServiceConfig, account_ops_DAO: IAccountOperations_DAO):
+    def __init__(self, config: ServiceConfig, account_ops_DAO: IAccountOperations_DAO, account_crud_DAO: IAccountCRUD_DAO, customer_crud_DAO: ICustomerCRUD_DAO):
         self._LOG: Logger = LoggerFactory.getLogger("service.controller.AccountOperationsController")
 
         # validate params
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='config', paramValueToCheck=config, acceptedTypes=ServiceConfig, loggerToUse=self._LOG)
         dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_ops_DAO', paramValueToCheck=account_ops_DAO, acceptedTypes=IAccountOperations_DAO, loggerToUse=self._LOG)
+        dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='account_crud_DAO', paramValueToCheck=account_crud_DAO, acceptedTypes=IAccountCRUD_DAO, loggerToUse=self._LOG)
+        dependency_validator.ensureGivenAndTypeMatching(targetInstance=self, paramName='customer_crud_DAO', paramValueToCheck=customer_crud_DAO, acceptedTypes=ICustomerCRUD_DAO, loggerToUse=self._LOG)
 
         self._account_ops_DAO: IAccountOperations_DAO = account_ops_DAO
+        self._account_crud_DAO: IAccountCRUD_DAO = account_crud_DAO
+        self._customer_crud_DAO: ICustomerCRUD_DAO = customer_crud_DAO
 
 
-
-    def create(self, account_data: Account, cntx: ExecutionContext = None) -> str:
+    def get_account_transfers(self, account_id: str, direction: TransferDirection = TransferDirection.all, cntx: ExecutionContext = None) -> list[Transfer]: 
         """
-        Creates a Account - based on the passed Account data.
-        """
-        labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
-        self._LOG.debug("creating Account: %s", account_data, **labels)
-        preconditions.check_argument(account_data != None and isinstance(account_data, Account), "'account_data' parameter must be provided and it must be Account type")
-        # we should not modify the passed in object - so take a copy
-        account_data = deepcopy(account_data)
+        Retrieves Transfers belong to a specific Account and returns them in an ordered list. Order should be time descendant.
 
-        # validations
+        The `direction` parameter tells what we are curious about - obvious hopefully...
 
-        # customer_id is mandatory
-        if strings.is_blank(account_data.customerId):
-            # Oops...
-            err: str = f"Failed to create Account - 'customerId' is mandatory information which was not provided or was empty. You should provide a valid customerId!"
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_MISSING_MANDATORY}, place_name = "account_data.customerId")
-        # does it exist?
-        customer_obj = self._customer_DAO.read(customer_id = account_data.customerId, cntx = cntx)
-        if customer_obj == None:
-            # Oops
-            err: str = f"Failed to create Account - provided 'customerId' is invalid - this customer does not exist!"
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.customerId")
-        
-        # we always generate account ids on server side - so it should not be provided by the caller
-        if account_data.id != None:
-            # Oops...
-            err: str = f"Failed to create Account - 'id' was provided however not expected as we generate it always on server side. Should not be sent."
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_SHOULD_NOT_BE_PROVIDED}, place_name = "account_data.id")
-        # we always generate this
-        if account_data.createdAt != None:
-            # Oops...
-            err: str = f"Failed to create Account - 'createdAt' timestamp was provided however not expected as we generate it always on server side. Should not be sent."
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_SHOULD_NOT_BE_PROVIDED}, place_name = "account_data.createdAt")
-
-        is_unique = False
-        while not is_unique:
-            # let's generate a bank account
-            account_data.id = self._generate_new_bank_account_id()
-            existing_account: Account = self._account_ops_DAO.read(account_data.id)
-            is_unique = existing_account == None
-
-        # now version stuff - we must persist with v1
-        account_data.version = 1
-        # current time
-        account_data.createdAt = int(time.time())
-
-        # defaults - if not provided
-        if account_data.balance == None:
-            account_data.balance = 0
-        if account_data.status == None:
-            account_data.status = AccountStatus.active
-        else:
-            if isinstance(account_data.status, str):
-                # we need to check the value - it must be one of the valid enum values
-                if not preconditions.is_enum_value_valid(account_data.status, AccountStatus):
-                # Oops
-                    err: str = f"Failed to create Account - provided 'status' is not a valid Account status!"
-                    self._LOG.error(err, **labels)
-                    raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.status")
-                # convert string to enum
-                account_data.status = AccountStatus(account_data.status)
-
-        # and lest go!
-        self._account_ops_DAO.upsert(account_data = account_data, cntx = cntx)
-        return account_data.id
-
-
-    def get(self, account_id: str, cntx: ExecutionContext = None) -> Union[Account|None]:
-        """
-        Retrieves a Account belongs to 'account_id' - if exists.
+        If there is no match returns empty list.
+        If the requested Account does not exist then `ResourceNotFoundError` is raised.
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
-        self._LOG.debug("retrieving Account id=%s", account_id, **labels)
+        self._LOG.debug("retrieving '%s' Transfers of Account id=%s", direction, account_id, **labels)
 
         preconditions.check_argument(strings.is_not_blank(account_id), "'account_id' can not be blank")
+        # this account must exist
+        existing_account = self._account_crud_DAO.read(account_id=account_id, cntx=cntx)
+        if existing_account == None:
+            if existing_account == None:
+                # Oops it does not exist
+                err: str = f"Failed to retrieve Transfers for Account - Account id '{account_id}' does not exist"
+                self._LOG.error(err, **labels)
+                raise errors.ResourceNotFoundError(message=err)            
 
-        account: Account = self._account_ops_DAO.read(account_id=account_id, cntx=cntx)
+        transfers: list[Transfer] = self._account_ops_DAO.get_account_transfers(account_id=account_id, direction=direction, cntx=cntx)
 
-        if account == None:
-            self._LOG.debug("not found", **labels)
+        if transfers == None:
+            transfers = list()
 
-        return account
-
-
-    def update(self, account_data: Account, cntx: ExecutionContext = None):
+        return transfers
+    
+    
+    def get_customer_accounts(self, customer_id: str, cntx: ExecutionContext = None) -> list[Account]: 
         """
-        Updates an existing Account to match with the given attributes.
+        Retrieves all Accounts belong to a specific Customer.
+
+        If there is no match returns empty list. If the requested Customer does not exist then `ResourceNotFoundError` is raised.
         """
         labels = cntx.get_minimmal_info_for_log() if cntx != None else dict()
-        self._LOG.debug("updating Account: %s", account_data, **labels)
+        self._LOG.debug("retrieving Accounts for Customer id=%s", customer_id, **labels)
 
-        preconditions.check_argument(account_data != None and isinstance(account_data, Account), "'account_data' parameter must be provided and it must be Account type")
-        # we should not modify the passed in object - so take a copy
-        #account_data = deepcopy(account_data)
+        preconditions.check_argument(strings.is_not_blank(customer_id), "'customer_id' can not be blank")
 
-        if account_data.id == None:
-            # Oops...
-            err: str = f"Failed to update Account - 'id' was not provided however it is mandatory"
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_MISSING_MANDATORY}, place_name = "account_data.id")
-
-        # the underlying DAO is upsert based - but now we have an update
-        # so to avoid we create the Account instead of updating an existing we need a read back first
-        existing_account: Account = self._account_ops_DAO.read(account_data.id)
-        if existing_account == None:
-            # Oops it does not exist
-            err: str = f"Failed to update Account - id '{account_data.id}' does not exist"
-            self._LOG.error(err, **labels)
-            raise errors.ResourceNotFoundError(message=err)
-
-        # so we have the guy!
-        # let's check the versions - any optimistic locking problem?
-        if existing_account.version != account_data.version:
-            # Oops it does not work...
-            err: str = f"Failed to update Account - assumed and actual resource versions do not match! Very likely someone else has updated this resource in the meantime - please read it again!"
-            self._LOG.error(err, **labels)
-            raise errors.OptimisticLockingError(message = err, error_codes = errors.OptimisticLockingError.ERRCODE_VERSION_CONFLICT, assumed_version=account_data.version, actual_version=existing_account.version)
-
-        # time to validate some info
-
-        # some fields should not be provided or if yes then not changed (read only)
-        if account_data.createdAt != None and account_data.createdAt != existing_account.createdAt:
-            # Oops...
-            err: str = f"Failed to update Account - 'createdAt' is a read-only field which you tried to change"
-            self._LOG.error(err, **labels)
-            raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_READONLY_VALUE_CHANGED}, place_name = "account_data.createdAt")
-
-        if account_data.customerId != None and account_data.customerId != existing_account.customerId:
-            # does the new owner exist?
-            customer_obj = self._customer_DAO.read(customer_id = account_data.customerId, cntx = cntx)
-            if customer_obj == None:
-                # Oops
-                err: str = f"Failed to update Account - provided 'customerId' is invalid - this customer does not exist!"
+        # this customer must exist
+        existing_customer = self._customer_crud_DAO.read(customer_id=customer_id, cntx=cntx)
+        if existing_customer == None:
+            if existing_customer == None:
+                # Oops it does not exist
+                err: str = f"Failed to retrieve Accounts for Customer - Customer id '{customer_id}' does not exist"
                 self._LOG.error(err, **labels)
-                raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.customerId")
-            # merge it in
-            existing_account.customerId = account_data.customerId
+                raise errors.ResourceNotFoundError(message=err)
 
-        if account_data.status != None:
-            if isinstance(account_data.status, str):
-                # we need to check the value - it must be one of the valid enum values
-                if not preconditions.is_enum_value_valid(account_data.status, AccountStatus):
-                # Oops
-                    err: str = f"Failed to update Account - provided 'status' is not a valid Account status!"
-                    self._LOG.error(err, **labels)
-                    raise errors.ValidationError(message=err, error_codes={errors.ValidationError.ERRCODE_INVALID_VALUE}, place_name = "account_data.status")
-                # convert string to enum
-                account_data.status = AccountStatus(account_data.status)
-            if account_data.status != existing_account.status:
-                # merge it in
-                existing_account.status = account_data.status
+        accounts: list[Account] = self._account_ops_DAO.get_customer_accounts(customer_id=customer_id, cntx=cntx)
+        if accounts == None:
+            accounts = list()
 
-        if account_data.balance != None:
-            existing_account.balance = account_data.balance
-        
-        # version should be increased
-        existing_account.version = existing_account.version + 1
+        return accounts
 
-        self._account_ops_DAO.upsert(account_data = existing_account, cntx = cntx)
+
 
 

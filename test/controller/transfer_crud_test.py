@@ -1,8 +1,8 @@
 from src.model.config.models import ServiceConfig
 from src.persistence.sqlite.sqlite_db import SqliteDB
-from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
-from src.persistence.sqlite.sqlite_account_crud_dao import SqliteAccountDAO
-from src.persistence.sqlite.sqlite_transfer_crud_dao import SqliteTransferDAO
+from persistence.sqlite.sqlite_customer_dao import SqliteCustomerDAO
+from persistence.sqlite.sqlite_account_dao import SqliteAccountDAO
+from persistence.sqlite.sqlite_transfer_dao import SqliteTransferDAO
 from src.controller.transfer_crud import TransferCRUDController
 from src.model.api.generated.banking_api_v1 import Customer, Account, AccountStatus, Transfer, TransferStatus
 from src.model.error import errors

@@ -1,6 +1,6 @@
 from src.model.config.models import ServiceConfig
 from src.persistence.sqlite.sqlite_db import SqliteDB
-from src.persistence.sqlite.sqlite_customer_crud_dao import SqliteCustomerDAO
+from persistence.sqlite.sqlite_customer_dao import SqliteCustomerDAO
 from src.controller.customer_crud import ICustomerCRUD_DAO, CustomerCRUDController
 from src.model.api.generated.banking_api_v1 import Customer
 from src.model.error import errors
@@ -12,7 +12,9 @@ serviceConfig: ServiceConfig = ServiceConfig(**{
     "persistence": {
         "sqlite": {
             "db_file": "local_workfolder/tmp/_sqlite_CustomerCRUDController_test.db",
-            "schema_files": {"customers": ["db_schemas/sqlite/schema_customers.sql"]}            
+            "schema_files": {
+                "customers": ["db_schemas/sqlite/schema_customers.sql"]
+            }
         }
     }
 })
