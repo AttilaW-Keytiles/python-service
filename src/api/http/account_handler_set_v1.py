@@ -66,9 +66,9 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
     def get_account_proxy(self, request: Request):
         account_id: str = request.path_params.get("accountId")
         if strings.is_blank(account_id):
-            return self._execute_handler_method_wrapper(request=request, method=self.search_accounts)
+            return self._execute_handler_method_wrapped(request=request, method=self.search_accounts)
         else:
-            return self._execute_handler_method_wrapper(request=request, method=self.get_account)
+            return self._execute_handler_method_wrapped(request=request, method=self.get_account)
 
 
     def get_account(self, cntx: FastAPIHttpExecutionContext) -> Response:
@@ -83,7 +83,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
     
     # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Account - just need to declare it as param. Convenient!
     def create_account_proxy(self, request: Request, account: Account):
-        resp = self._execute_handler_method_wrapper(request=request, method=self.create_account, bodyObject=account)
+        resp = self._execute_handler_method_wrapped(request=request, method=self.create_account, bodyObject=account)
         return resp
 
 
@@ -107,7 +107,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
     
     # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Account - just need to declare it as param. Convenient!
     def update_account_proxy(self, request: Request, account: Account):
-        resp = self._execute_handler_method_wrapper(request=request, method=self.update_account, bodyObject=account)
+        resp = self._execute_handler_method_wrapped(request=request, method=self.update_account, bodyObject=account)
         return resp
 
 
@@ -159,7 +159,7 @@ class AccountHandlerSetV1(BaseFastAPIHandlerSet):
 
     # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Account - just need to declare it as param. Convenient!
     def get_account_transfer_history_proxy(self, request: Request, req_obj: HistoryOperationRequest):
-        resp = self._execute_handler_method_wrapper(request=request, method=self.get_account_transfer_history, bodyObject=req_obj)
+        resp = self._execute_handler_method_wrapped(request=request, method=self.get_account_transfer_history, bodyObject=req_obj)
         return resp
 
 

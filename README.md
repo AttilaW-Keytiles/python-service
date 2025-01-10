@@ -154,7 +154,7 @@ But here they are - in a dependency order
     * Metrics (Monitoring) and Logging  
       Logging waorks the way it is configurable, hierarchical, structured logging - with scraping-ready (if you configure) JSON format
     * Minimalistic service-global meta data (taken from ENV, prepared for Dockerization) - goes into both Metrics and Logging "global labels" (collection ready) 
-    * Some tracing possibilities - minimalistic but most useful (CorrelationID / TransactionID only for now)
+    * Some tracing possibilities - minimalistic but most useful (TraceID / TransactionID only for now)
 
  1. For maintainability:
     * Used "Clean architecture" principles (not overdone, simplified!) for code structuring (package design)

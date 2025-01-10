@@ -77,7 +77,7 @@ class BaseFastAPIHandlerSet(ABC):
         cntx = FastAPIHttpExecutionContext(http_request=http_request)
         return cntx
     
-    def _execute_handler_method_wrapper(self, request: Request, method, endpoint_name: str = None, bodyObject: BaseModel = None, logRequestOnLevel: str = "info", logRequestBodyOnLevel: str = "info"):
+    def _execute_handler_method_wrapped(self, request: Request, method, endpoint_name: str = None, bodyObject: BaseModel = None, logRequestOnLevel: str = "info", logRequestBodyOnLevel: str = "info"):
         """
         Used by _proxy_ methods. It executes the given method "wrapped" - to ensure all boilerplate is done and exceptions handled correctly.
 
@@ -98,7 +98,7 @@ class BaseFastAPIHandlerSet(ABC):
             for key, value in request.path_params.items():
                 endpoint_name = endpoint_name.replace(value, f":{key}:")
         if endpoint_name != None:
-            http_metrics = MetricsFactory.get_http_endpoint_metrics(endpoint_name = endpoint_name)
+            http_metrics = MetricsFactory.get_http_endpoint_metrics(endpoint_name = endpoint_name, cntx=cntx)
 
         # things could go wrong... so let's wrap it!
         try:
@@ -123,23 +123,25 @@ class BaseFastAPIHandlerSet(ABC):
         except MessageResponseException as exc:
             # metrics! if we have...
             if http_metrics != None:
-                http_metrics.increment(status_code = exc.status_code, method = request.method)
+                http_metrics.increment(status_code = exc.status_code, method = request.method, cntx=cntx)
             # just simply throw it
             raise exc
         except Exception as exc:
             msgRespException = MessageResponseException.from_exception(exc=exc, cntx=cntx)
             # metrics! if we have...
             if http_metrics != None:
-                http_metrics.increment(status_code = msgRespException.status_code, method = request.method)
+                http_metrics.increment(status_code = msgRespException.status_code, method = request.method, cntx=cntx)
             # throw it the way we set the cause too
             raise msgRespException from exc
         finally:
             tookMillis = cntx.get_ellapsed_millis()
-            self._LOG.debug("Req-Resp completed - took %s millis", tookMillis, **labels)
+            self._LOG.info("Req-Resp completed - took %s millis", tookMillis, **labels)
 
         # metrics! if we have...
         if http_metrics != None:
-            http_metrics.increment(status_code = resp.status_code, method = request.method)
+            http_metrics.increment(status_code = resp.status_code, method = request.method, cntx=cntx)
+
+        self._LOG.info("Request was successful - %s returned", request.method, **labels)
         
         return resp
     

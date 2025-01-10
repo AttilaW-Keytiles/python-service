@@ -61,9 +61,9 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
     def get_customer_proxy(self, request: Request):
         customer_id: str = request.path_params.get("customerId")
         if strings.is_blank(customer_id):
-            return self._execute_handler_method_wrapper(request=request, method=self.search_customers)
+            return self._execute_handler_method_wrapped(request=request, method=self.search_customers)
         else:
-            return self._execute_handler_method_wrapper(request=request, method=self.get_customer)
+            return self._execute_handler_method_wrapped(request=request, method=self.get_customer)
 
 
     def get_customer(self, cntx: FastAPIHttpExecutionContext) -> Response:
@@ -78,7 +78,7 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
     
     # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Customer - just need to declare it as param. Convenient!
     def create_customer_proxy(self, request: Request, customer: Customer):
-        resp = self._execute_handler_method_wrapper(request=request, method=self.create_customer, bodyObject=customer)
+        resp = self._execute_handler_method_wrapped(request=request, method=self.create_customer, bodyObject=customer)
         return resp
 
 
@@ -106,7 +106,7 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
     
     # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Customer - just need to declare it as param. Convenient!
     def update_customer_proxy(self, request: Request, customer: Customer):
-        resp = self._execute_handler_method_wrapper(request=request, method=self.update_customer, bodyObject=customer)
+        resp = self._execute_handler_method_wrapped(request=request, method=self.update_customer, bodyObject=customer)
         return resp
 
 
@@ -157,7 +157,7 @@ class CustomerHandlerSetV1(BaseFastAPIHandlerSet):
 
 
     def delete_customer_proxy(self, request: Request):
-        return self._execute_handler_method_wrapper(request=request, method=self.delete_customer)
+        return self._execute_handler_method_wrapped(request=request, method=self.delete_customer)
 
 
     def delete_customer(self, cntx: FastAPIHttpExecutionContext) -> Response:

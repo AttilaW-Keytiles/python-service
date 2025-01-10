@@ -58,9 +58,9 @@ class TransferHandlerSetV1(BaseFastAPIHandlerSet):
     def get_transfer_proxy(self, request: Request):
         transfer_id: str = request.path_params.get("transferId")
         if strings.is_blank(transfer_id):
-            return self._execute_handler_method_wrapper(request=request, method=self.search_transfers)
+            return self._execute_handler_method_wrapped(request=request, method=self.search_transfers)
         else:
-            return self._execute_handler_method_wrapper(request=request, method=self.get_transfer)
+            return self._execute_handler_method_wrapped(request=request, method=self.get_transfer)
 
 
     def get_transfer(self, cntx: FastAPIHttpExecutionContext) -> Response:
@@ -75,7 +75,7 @@ class TransferHandlerSetV1(BaseFastAPIHandlerSet):
     
     # It's really lovely in FastAPI it can automatically instantiate a pydantic Model - in our case Transfer - just need to declare it as param. Convenient!
     def create_transfer_proxy(self, request: Request, transfer: Transfer):
-        resp = self._execute_handler_method_wrapper(request=request, method=self.create_transfer, bodyObject=transfer)
+        resp = self._execute_handler_method_wrapped(request=request, method=self.create_transfer, bodyObject=transfer)
         return resp
 
 

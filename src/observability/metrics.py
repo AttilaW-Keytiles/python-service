@@ -34,7 +34,7 @@ class HttpEndpointMetrics(MetricSet):
         self.endpoint_name = endpoint_name
         self._counters: dict[str, any] = dict()
 
-    def increment(self, status_code: str|int = 0, method: str = "?") -> None:
+    def increment(self, status_code: str|int = 0, method: str = "?", cntx: ExecutionContext = None) -> None:
         """Once you finished the response generation and know your status_code simply invoke this to get an incremented Count for that status code"""
         key = f"{status_code}_{method}"
         counter_instance = self._counters.get(key)
@@ -86,7 +86,7 @@ class MetricsFactory:
             metric_set  = HttpEndpointMetrics(endpoint_name=endpoint_name)
             # let's save it
             cls._metric_sets.update({"http:"+endpoint_name: metric_set})
-            cls._LOG.info("created HttpEndpointMetrics with endpoint name '%s'", endpoint_name, **labels)
+            cls._LOG.debug("created HttpEndpointMetrics with endpoint name '%s'", endpoint_name, **labels)
         return metric_set
 
 
