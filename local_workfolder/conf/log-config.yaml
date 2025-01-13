@@ -52,7 +52,7 @@ loggers:
 
   # All Loggers created by the service code belong to "service" group - so this controls everyone basically
   service:
-    level: INFO
+    level: DEBUG
     handlers: [console, plain_file, json_file]
     propagate: no
 

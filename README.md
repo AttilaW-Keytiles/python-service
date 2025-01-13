@@ -1,4 +1,11 @@
 
+# Presentation video - available!
+
+I wanted to explain myself a bit and show a few things - bootstrap this whole solution.
+
+So **I recorded a video (presentation)** which you find on YouTube here: https://youtu.be/9iWLUMEuNAk
+
+
 # What's this?
 
 A simple service implemented in Python to handle Customers and Bank accounts CRUD and other operations.
