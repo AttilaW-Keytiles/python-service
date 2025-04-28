@@ -16,5 +16,6 @@ local_workfolder/data/*
 local_workfolder/logs/*
 local_workfolder/tmp/*
 
-# do not commit jbehave bdd test reports
+# do not commit jbehave bdd test reports and the .jar file
 **/reports/jbehave/*
+*.jar
