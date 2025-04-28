@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<!-- import these before the "propertyResolver" bean - as that one refers to things from these-->
+<!-- 	<import resource="classpath:xml-dsl-include/wiremock-properties-definitions.context.xml" />
+ -->
+	<!-- loads properties from files and command line - takes care about resolving
+		${...} placeholders -->
+	<bean id="propertyResolver"
+		  class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+		<property name="ignoreResourceNotFound" value="false" />
+		<property name="locations">
+			<list>
+				<value>classpath:properties/bdd-tests-core-common.properties</value>
+			</list>
+		</property>
+		<property name="localOverride" value="true" />
+		<property name="propertiesArray">
+			<list>
+<!-- 				<ref bean="wiremockProperties"/>
+ -->			</list>
+		</property>
+	</bean>
+
+<!-- 	<import resource="classpath:xml-dsl-include/wiremock-server.context.xml" />
+ -->
+	<!-- Let's add our test subject - the Go Service. Just started from the compiled exe with configured Dvelve server makes it remote debuggable -->
+	<bean id="pythonServiceController" class="com.sixt.tool.bdd_testsuite.runners.pythonapp.PythonAppController">
+<!-- 		<property name="workFolder" value="${setupFolder}/../.." />
+ -->		
+ 		<property name="workFolder" value="d:/workspace/python-projects/python-service" />
+		<property name="venvFolder" value=".venv" />
+		<property name="mainPythonFile" value="main.py" />
+
+		<!-- NOTE: uncomment the below if you want to start debugpy debugger server on the specific port!
+		     That makes it possible to remote-attach to the Python service from VSCode so you can debug it. -->
+		<property name="debugPort" value="5678" />
+	</bean>
+
+</beans>

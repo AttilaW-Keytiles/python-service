@@ -13,7 +13,8 @@ dependencies = [
     "fastapi-code-generator",
     "structlog",
     "json-log-formatter",
-    "prometheus-client"
+    "prometheus-client",
+    "debugpy",
 ]
 
 [project.optional-dependencies]

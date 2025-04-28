@@ -1,0 +1,37 @@
+# settings used by the FastAPI app
+fast_api:
+  http_port: 8080
+
+# This section is used by objects in "persistence" package
+persistence:
+  # if sqlite is used then here is its config
+  sqlite:
+    # note: you can NOT use literal ":memory:" here - the SqliteDB class is not prepared for this
+    # but it points to the file will be used as DB
+    db_file: local_workfolder/data/sqlite.db
+    schema_files:
+      # used by SqliteCustomerDAO
+      customers:
+        - 'db_schemas/sqlite/schema_customers.sql'
+        - 'db_schemas/sqlite/initial_data_customers.sql'
+      accounts:
+        - 'db_schemas/sqlite/schema_accounts.sql'
+      transfers:
+        - 'db_schemas/sqlite/schema_transfers.sql'
+      users:
+        - 'db_schemas/sqlite/schema_users.sql'
+        - 'db_schemas/sqlite/initial_data_users.sql'
+
+business_logic:
+  # this is used in transfers and account balances
+  # if ommitted the default=2
+  roundig_decimals: 3
+
+metrics:
+  is_enabled: true
+  http_port: 9008
+  # By default the below collectors are disabled
+  # not useful because they do not have the global labels we need to distinguish in time series... so would be just noise and cross-crap
+  GC_COLLECTOR_enabled: false
+  PLATFORM_COLLECTOR_enabled: false
+  PROCESS_COLLECTOR_enabled: false

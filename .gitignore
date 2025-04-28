@@ -15,3 +15,6 @@ src/*.egg-info/
 local_workfolder/data/*
 local_workfolder/logs/*
 local_workfolder/tmp/*
+
+# do not commit jbehave bdd test reports
+**/reports/jbehave/*

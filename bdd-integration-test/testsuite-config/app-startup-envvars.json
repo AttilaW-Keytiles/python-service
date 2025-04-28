@@ -1,0 +1,6 @@
+{
+    "BANKINGSERVICE_LOGCFG_PATH": "${setupFolder}/app-log-config.yaml",
+    "BANKINGSERVICE_CFG_PATH": "${setupFolder}/app-config.yaml",
+
+    "SERVICE_NAME": "test-subject-service"
+}
